@@ -1,0 +1,27 @@
+{
+  "name": "audio2task",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler types && tsc --noEmit",
+    "deploy": "wrangler deploy --env=\"\"",
+    "test": "vitest",
+    "test:watch": "vitest watch",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": ["whatsapp", "todoist", "audio", "transcription", "cloudflare-workers", "baileys"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": "WhatsApp bot that converts voice messages into Todoist tasks using Baileys",
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.53",
+    "@cloudflare/workers-types": "^4.20250712.0",
+    "@types/node": "^24.0.13",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.24.3"
+  }
+}

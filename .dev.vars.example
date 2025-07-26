@@ -1,0 +1,11 @@
+# Shared secret for webhook authentication (must match Baileys service)
+WEBHOOK_SECRET=your-webhook-secret
+
+# URL of your Baileys service
+BAILEYS_SERVICE_URL=http://localhost:3000
+
+# OpenAI API key for audio transcription
+OPENAI_API_KEY=sk-...
+
+# Todoist API token
+TODOIST_API_TOKEN=...

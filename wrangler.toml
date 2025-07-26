@@ -1,0 +1,25 @@
+name = "jarvis-bot"
+main = "src/index.ts"
+compatibility_date = "2025-01-13"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[env.production]
+name = "jarvis-bot-production"
+
+[[kv_namespaces]]
+binding = "USER_CONFIGS"
+id = "58013f2718e84f5cae8f325672455da5"
+preview_id = "ca38cdcf4dd8475ba03ec086629ae83a"
+
+[vars]
+ENVIRONMENT = "development"
+
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+
+# Add these to .dev.vars for local development
+# WEBHOOK_SECRET = "your-webhook-secret"
+# BAILEYS_SERVICE_URL = "http://localhost:3000"
+# OPENAI_API_KEY = "your-openai-key"
+# TODOIST_API_TOKEN = "your-todoist-token"

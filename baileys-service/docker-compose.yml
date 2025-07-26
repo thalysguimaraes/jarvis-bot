@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  baileys-service:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - WORKER_WEBHOOK_URL=${WORKER_WEBHOOK_URL}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - PHONE_NUMBER=${PHONE_NUMBER:-}
+    volumes:
+      # Persist WhatsApp session
+      - ./auth_info:/app/auth_info
+    restart: unless-stopped
