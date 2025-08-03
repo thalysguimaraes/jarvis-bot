@@ -1,14 +1,14 @@
 # JarvisBot Deployment Guide
 
-This guide walks you through deploying JarvisBot for personal use.
+This guide walks you through deploying JarvisBot with Z-API for WhatsApp integration.
 
 ## Prerequisites
 
 - Node.js 18+
 - Git
 - Cloudflare account (free)
+- Z-API account with WhatsApp Business number
 - OpenAI API account
-- A server to run Baileys (VPS, local machine, or Raspberry Pi)
 
 ## Step 1: Clone and Setup
 
@@ -18,7 +18,17 @@ cd jarvis-bot
 npm install
 ```
 
-## Step 2: Configure Environment
+## Step 2: Setup Z-API
+
+1. Go to [Z-API](https://z-api.io/) and create an account
+2. Create a WhatsApp Business instance
+3. Connect your WhatsApp Business number
+4. Note down your credentials:
+   - Instance ID (e.g., `3A4B5C6D7E8F9G0H`)
+   - Instance Token (long token string)
+   - Security Token (webhook authentication)
+
+## Step 3: Configure Environment
 
 1. Copy the example configuration:
 ```bash
@@ -29,8 +39,14 @@ cp .dev.vars.example .dev.vars
 
 ### Required Configuration
 ```env
+# Core
 WEBHOOK_SECRET=choose-a-random-secret-key
 OPENAI_API_KEY=sk-your-openai-api-key
+
+# Z-API (Required for WhatsApp)
+Z_API_INSTANCE_ID=your-z-api-instance-id
+Z_API_INSTANCE_TOKEN=your-z-api-instance-token
+Z_API_SECURITY_TOKEN=your-z-api-security-token
 ```
 
 ### Optional Features
@@ -61,7 +77,7 @@ ZAISEN_API_KEY=your-fund-api-key
 FUND_PORTFOLIO_DATA=[{"cnpj":"11.222.333/0001-44","name":"My Fund","quotas":100,"investedAmount":10000,"avgPrice":100.0,"purchaseDate":"2024-01-15"}]
 ```
 
-## Step 3: Deploy to Cloudflare
+## Step 4: Deploy to Cloudflare
 
 1. Login to Cloudflare:
 ```bash
@@ -73,86 +89,71 @@ npx wrangler login
 npm run deploy
 ```
 
-3. Note your worker URL (something like `https://jarvis-bot.your-subdomain.workers.dev`)
+3. Note your worker URL (e.g., `https://jarvis-bot.your-subdomain.workers.dev`)
 
-## Step 4: Setup Baileys Service
+## Step 5: Configure Z-API Webhook
 
-1. Navigate to Baileys service:
+1. In your Z-API dashboard, go to Webhook settings
+2. Set webhook URL to: `https://your-worker.workers.dev/webhook`
+3. Enable webhook for message events
+4. Test the connection (Z-API usually provides a test feature)
+
+## Step 6: Test Your Setup
+
+### 1. Test Worker Health
 ```bash
-cd baileys-service
-npm install
+curl https://your-worker.workers.dev/health
+# Should return: OK
 ```
 
-2. Configure environment:
+### 2. Test Worker Status
 ```bash
-cp .env.example .env
+curl https://your-worker.workers.dev/status
+# Should return JSON with service status
 ```
 
-3. Edit `.env`:
-```env
-PORT=3000
-WORKER_WEBHOOK_URL=https://your-worker-url.workers.dev
-WEBHOOK_SECRET=same-secret-as-worker
-```
+### 3. Test Voice Commands
+Send audio messages to your WhatsApp Business number:
+- "Comprar leite amanhã" (creates task)
+- "Tive uma ideia interessante" (creates note)
+- "Meu portfolio" (portfolio report, if configured)
 
-## Step 5: Run Baileys Service
+## API Keys and Tokens Setup
 
-### Local Development
-```bash
-npm run dev
-```
-
-### Production (VPS with PM2)
-```bash
-npm install -g pm2
-pm2 start npm --name "jarvis-baileys" -- run start
-pm2 save
-pm2 startup
-```
-
-### Docker Deployment
-```bash
-docker-compose up -d
-```
-
-## Step 6: Connect WhatsApp
-
-1. Start the Baileys service (previous step)
-2. A QR code will appear in the console
-3. Open WhatsApp on your phone
-4. Go to Settings → Linked Devices → Link a Device
-5. Scan the QR code
-6. Send a test voice message to your own number
-
-## Configuration Details
-
-### API Keys and Tokens
-
-**OpenAI API Key:**
+### OpenAI API Key
 1. Go to https://platform.openai.com/
 2. Create account and add billing information
 3. Go to API Keys section
-4. Create new secret key
+4. Create new secret key starting with `sk-`
 
-**Todoist API Token:**
+### Z-API Setup
+1. Create account at https://z-api.io/
+2. Choose a plan (starts around $15/month)
+3. Create WhatsApp Business instance
+4. Connect your WhatsApp Business phone number
+5. Get Instance ID, Token, and Security Token from dashboard
+
+### Todoist API Token (Optional)
 1. Go to https://todoist.com/prefs/integrations
 2. Scroll to API token section
 3. Copy your personal API token
 
-**GitHub Personal Access Token:**
+### GitHub Personal Access Token (Optional)
 1. Go to GitHub Settings → Developer settings → Personal access tokens
 2. Generate new token (classic)
 3. Select scopes: `repo` for private repos or `public_repo` for public repos
 4. Copy the generated token
 
-**BRAPI Token:**
+### BRAPI Token (Optional)
 1. Go to https://brapi.dev/
 2. Register for free account
 3. Get your API token from dashboard
 
+## Configuration Details
+
 ### Portfolio Configuration
 
-Edit your portfolio data in JSON format:
+Edit your stock portfolio in JSON format:
 
 ```env
 PORTFOLIO_DATA=[
@@ -179,133 +180,165 @@ FUND_PORTFOLIO_DATA=[
 ]
 ```
 
-## Testing Your Setup
+## Testing and Monitoring
 
-### 1. Test Worker Deployment
-Visit your worker URL - you should see "JarvisBot is running!"
+### Health Checks
+```bash
+# Basic health check
+curl https://your-worker.workers.dev/health
 
-### 2. Test Voice Commands
-Send audio messages like:
-- "Comprar leite amanhã" (creates task)
-- "Tive uma ideia interessante" (creates note)
-- "Meu portfolio" (portfolio report)
+# Detailed status
+curl https://your-worker.workers.dev/status
 
-### 3. Test Portfolio
-Send text message: `/portfolio` or voice: "Como está meu portfolio?"
+# Test configuration
+curl https://your-worker.workers.dev/test-config
+```
+
+### Monitor Logs
+```bash
+# Real-time worker logs
+npx wrangler tail
+
+# Filter for errors only
+npx wrangler tail --format=pretty --grep=ERROR
+```
+
+### Test Specific Features
+```bash
+# Test portfolio (if configured)
+curl -X POST https://your-worker.workers.dev/test-portfolio
+
+# Test fund tracking (if configured)  
+curl -X POST https://your-worker.workers.dev/test-fund-portfolio
+```
 
 ## Troubleshooting
 
-### Worker Not Responding
-```bash
-npx wrangler tail
-```
-Check logs for errors in real-time.
+### Common Issues
 
-### QR Code Not Showing
-- Ensure Node.js 18+
-- Delete `auth_info` folder and restart
-- Check console for error messages
+**Webhook Not Receiving Messages**
+- Check Z-API webhook URL is exactly: `https://your-worker.workers.dev/webhook`
+- Verify webhook is enabled for message events in Z-API
+- Check security token matches `WEBHOOK_SECRET`
+- Monitor logs: `npx wrangler tail`
 
-### Messages Not Processing
-- Verify WEBHOOK_SECRET matches in both services
-- Check worker URL is correct in Baileys .env
-- Ensure Cloudflare worker is deployed successfully
+**Messages Processing But No Response**
+- Check OpenAI API key is valid and has credits
+- Verify audio format is supported (most formats work)
+- Check worker execution time (max 10 seconds on free tier)
+- Look for errors in worker logs
 
-### Portfolio Not Working
+**Portfolio Not Working**
 - Verify BRAPI_TOKEN is valid
-- Check ticker symbols are correct (Brazilian format)
+- Check ticker symbols are in correct format (AAPL34, VALE3, etc.)
 - Ensure PORTFOLIO_DATA is valid JSON
+- Check API rate limits (BRAPI: 1000 requests/day free)
+
+**Tasks Not Creating in Todoist**
+- Verify TODOIST_API_TOKEN is correct
+- Check if Todoist account has reached project limits
+- Monitor worker logs for API errors
+
+**Notes Not Saving to Obsidian**
+- Verify GitHub token has correct repository permissions
+- Check repository exists and is accessible
+- Ensure GITHUB_OWNER and GITHUB_REPO are correct
+
+### Debug Steps
+
+1. **Check Worker Deployment**
+   ```bash
+   curl https://your-worker.workers.dev/health
+   ```
+
+2. **Verify Configuration**
+   ```bash
+   curl https://your-worker.workers.dev/test-config
+   ```
+
+3. **Monitor Real-time Logs**
+   ```bash
+   npx wrangler tail
+   ```
+
+4. **Test Z-API Connection**
+   - Send test message from Z-API dashboard
+   - Check if webhook receives the message
+
+5. **Check Environment Variables**
+   - Ensure all required variables are set
+   - Verify there are no extra spaces or quotes
 
 ## Security Considerations
 
 ### Environment Variables
-- Never commit .dev.vars to Git
-- Use different secrets for production
+- Never commit `.dev.vars` to Git
+- Use Cloudflare Worker secrets for production
 - Rotate API keys periodically
 
-### WhatsApp Security
-- Only use with your own WhatsApp number
-- Be aware this connects via WhatsApp Web
-- Monitor for unusual activity
-
-### Server Security
-- Use HTTPS for webhook URLs
-- Keep Baileys service behind firewall
-- Update dependencies regularly
-
-## Scaling Considerations
-
-### Single User (Recommended)
-- Run on local machine or small VPS
-- Use PM2 for process management
-- Basic monitoring with PM2 logs
-
-### Multiple Users
-- Use Docker containers
-- Implement user isolation
-- Add rate limiting
-- Consider managed hosting
-
-## Backup and Recovery
-
-### Important Data
-- Save your WhatsApp session: `baileys-service/auth_info/`
-- Backup your portfolio configuration
-- Export Cloudflare worker settings
-
-### Recovery Process
-1. Redeploy worker with same configuration
-2. Restore Baileys session folder
-3. Restart Baileys service
-4. Re-scan QR if needed
-
-## Performance Optimization
-
-### Cloudflare Workers
-- Free tier: 100k requests/day
-- Usually sufficient for personal use
-- Upgrade if needed for heavy usage
-
-### Baileys Service
-- Minimum 512MB RAM
-- 1 CPU core sufficient
-- SSD storage recommended
+### Z-API Security
+- Use strong security token for webhook authentication
+- Monitor unusual API usage in Z-API dashboard
+- Only enable required webhook events
 
 ### API Rate Limits
-- OpenAI: Standard rate limits apply
+- OpenAI: Standard rate limits based on tier
+- Z-API: Based on your plan (usually generous)
 - BRAPI: 1000 requests/day (free tier)
 - Todoist: 450 requests per 15 minutes
 
-## Monitoring
+## Scaling Considerations
 
-### Health Checks
-- Monitor worker uptime via Cloudflare dashboard
-- Check Baileys service with PM2: `pm2 status`
-- Test voice commands daily
+### Free Tier Limits
+- Cloudflare Workers: 100k requests/day
+- Usually sufficient for personal use
+- Monitor usage in Cloudflare dashboard
 
-### Logs
-- Worker logs: `npx wrangler tail`
-- Baileys logs: `pm2 logs jarvis-baileys`
-- System logs: `journalctl -u your-service`
+### If You Hit Limits
+- Upgrade Cloudflare Workers plan ($5/month)
+- Optimize request frequency
+- Cache responses where possible
 
-## Updates
+## Backup and Recovery
 
-### Worker Updates
+### Important Data to Backup
+- `.dev.vars` configuration (without committing to Git)
+- Portfolio configuration
+- Cloudflare Worker secrets
+- Z-API instance settings
+
+### Recovery Process
+1. Redeploy worker: `npm run deploy`
+2. Reconfigure Z-API webhook URL
+3. Test functionality with simple voice message
+4. Verify all integrations work
+
+## Cost Summary
+
+| Service | Monthly Cost | Notes |
+|---------|--------------|-------|
+| Z-API | $15-30 | WhatsApp Business API |
+| Cloudflare Workers | Free | 100k requests/day |
+| OpenAI API | ~$1-5 | Pay per use, ~$0.006/min audio |
+| **Total** | **$16-35** | For typical personal use |
+
+## Updates and Maintenance
+
+### Regular Updates
 ```bash
 git pull origin main
+npm install
 npm run deploy
 ```
 
-### Baileys Service Updates
-```bash
-git pull origin main
-cd baileys-service
-npm install
-pm2 restart jarvis-baileys
-```
+### Monitor Performance
+- Check Cloudflare Worker analytics
+- Monitor Z-API usage dashboard
+- Track OpenAI API costs
+- Review worker logs for errors
 
-### Dependency Updates
-```bash
-npm update
-npm audit fix
-```
+### Maintenance Tasks
+- Update dependencies: `npm update`
+- Check for security updates: `npm audit`
+- Review and rotate API keys quarterly
+- Monitor and optimize API usage

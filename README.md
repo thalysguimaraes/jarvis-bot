@@ -2,14 +2,14 @@
 
 ![JarvisBot Banner](public/banner-image.jpg)
 
-An AI-powered WhatsApp personal assistant that handles voice commands, task management, portfolio tracking, and fund monitoring. **100% free** and self-hosted using Baileys (WhatsApp Web API).
+An AI-powered WhatsApp personal assistant that handles voice commands, task management, portfolio tracking, and fund monitoring. Built with **Z-API** for reliable WhatsApp integration and deployed on **Cloudflare Workers**.
 
 ## 🆓 Why JarvisBot?
 
-Most AI assistants require expensive APIs or cloud services. JarvisBot uses:
-- **Baileys** - Free WhatsApp Web library (no API costs)
-- **Self-hosted** - Run on your own infrastructure  
-- **Open source** - Full transparency and control
+Most AI assistants are expensive or limited. JarvisBot offers:
+- **Reliable WhatsApp Integration** - Z-API for stable connections
+- **Serverless Architecture** - Cloudflare Workers (free tier)
+- **Open Source** - Full transparency and control
 - **Multi-modal** - Voice, text, portfolio tracking, and more
 
 ## 🎯 Features
@@ -32,8 +32,8 @@ Most AI assistants require expensive APIs or cloud services. JarvisBot uses:
 - **Daily/Individual**: Flexible note organization
 
 ### 🔒 Privacy & Security
-- **Your Data Stays Private**: All processing on your infrastructure
-- **No Cloud Dependencies**: Except for OpenAI transcription
+- **Webhook-based**: No persistent connections needed
+- **Environment Variables**: All secrets configurable
 - **Open Source**: Fully auditable code
 
 ## 🏗️ Architecture
@@ -41,16 +41,17 @@ Most AI assistants require expensive APIs or cloud services. JarvisBot uses:
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │                 │     │                  │     │                 │
-│  WhatsApp App   │────▶│  Baileys Service │────▶│ Cloudflare      │
-│                 │     │  (Local/VPS)     │     │ Worker          │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
+│  WhatsApp App   │────▶│     Z-API        │────▶│ Cloudflare      │
+│                 │     │   (WhatsApp      │     │ Worker          │
+└─────────────────┘     │   Business API)  │     │ (JarvisBot)     │
+                        └──────────────────┘     └─────────────────┘
                                 │                          │
-                                │ Audio Data               │ Processing
+                                │ Webhook                  │ Processing
                                 ▼                          ▼
                          ┌──────────────────┐     ┌─────────────────┐
                          │                  │     │ • OpenAI Whisper│
-                         │  WhatsApp Web    │     │ • Todoist API   │
-                         │  Connection      │     │ • Portfolio APIs│
+                         │  Audio Messages  │     │ • Todoist API   │
+                         │  Real-time       │     │ • Portfolio APIs│
                          └──────────────────┘     │ • Fund APIs     │
                                                   └─────────────────┘
 ```
@@ -59,11 +60,10 @@ Most AI assistants require expensive APIs or cloud services. JarvisBot uses:
 
 ### Prerequisites
 
-- Node.js 18+
 - Cloudflare account (free tier works)
+- Z-API account and WhatsApp Business number
 - OpenAI API key
 - Todoist API token (optional)
-- A server to run Baileys (VPS, Raspberry Pi, or local computer)
 
 ### 1. Clone and Setup
 
@@ -83,31 +83,31 @@ cp .dev.vars.example .dev.vars
 nano .dev.vars
 ```
 
-### 3. Deploy Worker
+### 3. Setup Z-API
+
+1. Go to [Z-API](https://z-api.io/) and create an account
+2. Create a WhatsApp Business instance
+3. Get your instance credentials:
+   - Instance ID
+   - Instance Token  
+   - Security Token
+4. Configure webhook URL (you'll get this after deployment)
+
+### 4. Deploy Worker
 
 ```bash
+# Login to Cloudflare
+npx wrangler login
+
+# Deploy
 npm run deploy
 ```
 
-### 4. Run Baileys Service
+### 5. Configure Z-API Webhook
 
-```bash
-cd baileys-service
-npm install
-cp .env.example .env
-
-# Edit .env with your worker URL and secrets
-nano .env
-
-npm run dev
-```
-
-### 5. Connect WhatsApp
-
-1. QR code will appear when you run Baileys
-2. Open WhatsApp → Settings → Linked Devices → Link Device
-3. Scan the QR code
-4. Send a test voice message!
+1. In Z-API dashboard, set webhook URL to: `https://your-worker.workers.dev/webhook`
+2. Enable webhook for message events
+3. Test by sending a voice message to your WhatsApp Business number
 
 ## ⚙️ Configuration
 
@@ -117,13 +117,20 @@ npm run dev
 # Core Settings
 WEBHOOK_SECRET=your-secret-key
 OPENAI_API_KEY=sk-your-openai-key
+
+# Z-API WhatsApp Integration
+Z_API_INSTANCE_ID=your-z-api-instance-id
+Z_API_INSTANCE_TOKEN=your-z-api-instance-token
+Z_API_SECURITY_TOKEN=your-z-api-security-token
+
+# Task Management (Optional)
 TODOIST_API_TOKEN=your-todoist-token
 
 # Voice Classification  
 CLASSIFICATION_ENABLED=true
 CLASSIFICATION_CONFIDENCE_THRESHOLD=0.8
 
-# Obsidian Integration
+# Obsidian Integration (Optional)
 OBSIDIAN_STORAGE_TYPE=github
 GITHUB_TOKEN=your-github-token
 GITHUB_OWNER=your-username
@@ -159,16 +166,8 @@ BRAPI_TOKEN=your-brapi-token
 ZAISEN_API_URL=your-fund-api-url
 ZAISEN_API_KEY=your-fund-api-key
 
-# Notifications
+# Notifications (WhatsApp number for reports)
 PORTFOLIO_WHATSAPP_NUMBER=5511999999999
-```
-
-### WhatsApp Service (.env in baileys-service/)
-
-```env
-PORT=3000
-WORKER_WEBHOOK_URL=https://your-worker.workers.dev
-WEBHOOK_SECRET=your-secret-key
 ```
 
 ## 🎤 Voice Commands
@@ -209,56 +208,49 @@ Ask about your investments naturally in Portuguese:
 
 ## 🔧 Deployment Options
 
+### Cloudflare Workers (Recommended)
+```bash
+# Deploy to production
+npm run deploy
+
+# Monitor logs
+npx wrangler tail
+```
+
 ### Local Development
-Perfect for testing and personal use:
 ```bash
+# Run locally
 npm run dev
+
+# Test endpoints
+curl http://localhost:8787/health
 ```
-
-### VPS Deployment (Recommended)
-Deploy on cloud server for 24/7 availability:
-- DigitalOcean, Linode, AWS EC2
-- ~$5/month for small VPS
-- Use included Docker setup
-
-### Docker Deployment
-```bash
-cd baileys-service
-docker-compose up -d
-```
-
-### Home Server
-Run on Raspberry Pi or spare computer:
-- Zero monthly costs
-- Perfect for personal use
-- Requires static IP or dynamic DNS
 
 ## 🔐 Security Best Practices
 
 ### Environment Variables
+- Store all secrets in Cloudflare Worker secrets
+- Use `.dev.vars` for local development only
 - Never commit secrets to Git
-- Use `.dev.vars` for local development
-- Use Cloudflare secrets for production
 
-### WhatsApp Security
-- Webhook authentication via shared secret
-- Session data encrypted locally
-- No message content stored in cloud
+### Z-API Security
+- Use webhook authentication via security token
+- Validate all incoming webhook requests
+- Monitor for unusual API usage
 
 ### API Security
 - All external API calls use HTTPS
-- Tokens stored as environment variables
 - Rate limiting on webhook endpoints
+- Input validation for all user content
 
 ## 💰 Cost Breakdown
 
 | Service | Cost | Notes |
 |---------|------|-------|
-| WhatsApp | Free | Via Baileys/WhatsApp Web |
 | Cloudflare Workers | Free | 100k requests/day limit |
+| Z-API | $15-30/month | WhatsApp Business API |
 | OpenAI Transcription | ~$0.006/min | Pay per use |
-| VPS (optional) | $5/month | 24/7 hosting |
-| **Total** | **$0-5/month** | + minimal OpenAI usage |
+| **Total** | **$15-30/month** | + minimal OpenAI usage |
 
 ## 🛠️ Development
 
@@ -284,36 +276,41 @@ npm run lint         # Code linting
 npm run deploy       # Deploy to Cloudflare
 ```
 
-### Adding New Features
-1. Create module in `src/modules/`
-2. Add voice commands to classifier
-3. Update AudioProcessor router
-4. Add environment configuration
-5. Test locally with `npm run dev`
+### Testing
+```bash
+# Test worker health
+curl https://your-worker.workers.dev/health
+
+# Test webhook endpoint
+curl -X POST https://your-worker.workers.dev/test-webhook
+
+# Test portfolio
+curl -X POST https://your-worker.workers.dev/test-portfolio
+```
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-**QR Code Not Appearing**
-- Check console for errors
-- Ensure Node.js 18+
-- Delete `auth_info` folder and retry
+**Webhook Not Receiving Messages**
+- Check Z-API webhook URL is correct
+- Verify security token matches `WEBHOOK_SECRET`
+- Check Cloudflare Worker logs: `npx wrangler tail`
 
 **Messages Not Processing**  
-- Check worker logs: `npx wrangler tail`
-- Verify webhook URL in Baileys .env
-- Ensure WEBHOOK_SECRET matches
+- Verify OpenAI API key is valid
+- Check audio format is supported
+- Monitor worker execution time limits
 
 **Portfolio Not Updating**
 - Check BRAPI_TOKEN is valid
 - Verify ticker symbols in PORTFOLIO_DATA
-- Check worker logs for API errors
+- Ensure fund API credentials are correct
 
-**WhatsApp Disconnecting**
-- Normal behavior for WhatsApp Web
-- Baileys auto-reconnects
-- Keep phone connected to internet
+**Classification Issues**
+- Adjust `CLASSIFICATION_CONFIDENCE_THRESHOLD`
+- Check voice message quality and language
+- Review classification logs in worker
 
 ### Debug Commands
 
@@ -321,11 +318,11 @@ npm run deploy       # Deploy to Cloudflare
 # Check worker logs
 npx wrangler tail
 
-# Test portfolio locally
-node test-portfolio.js
+# Test configuration
+curl https://your-worker.workers.dev/test-config
 
-# Validate configuration
-npm run typecheck
+# Check status
+curl https://your-worker.workers.dev/status
 ```
 
 ## 🤝 Contributing
@@ -335,7 +332,7 @@ Contributions welcome! Areas for improvement:
 - **Language Support**: Add English/Spanish voice commands
 - **New Integrations**: More task managers, note apps
 - **Market Support**: International stock markets
-- **Mobile App**: React Native companion app
+- **Analytics**: Usage tracking and insights
 - **Voice Responses**: Text-to-speech replies
 
 ### Development Setup
@@ -348,14 +345,14 @@ Contributions welcome! Areas for improvement:
 
 This project uses third-party services and APIs:
 
-- **WhatsApp**: Uses Baileys library for WhatsApp Web access
+- **Z-API**: For WhatsApp Business API access
 - **OpenAI**: For voice transcription services  
 - **Market APIs**: For real-time financial data
 - **Todoist**: For task management integration
 
 **Not affiliated with**: WhatsApp Inc., Meta Platforms, OpenAI, Todoist, or any mentioned services.
 
-Use at your own risk. Ensure compliance with WhatsApp Terms of Service.
+Use at your own risk. Ensure compliance with WhatsApp Business API Terms of Service.
 
 ## 📜 License
 
@@ -368,7 +365,6 @@ ISC License - See LICENSE file for details
 - **Documentation**: Check this README and inline code comments
 - **Issues**: Open GitHub issue for bugs or feature requests  
 - **Discussions**: Use GitHub Discussions for questions
-- **Community**: Join our Discord for real-time help
 
 ---
 
