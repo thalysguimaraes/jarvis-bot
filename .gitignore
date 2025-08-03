@@ -45,4 +45,20 @@ auth_info/
 DEPLOY.md
 SYNOLOGY_DEPLOY.md
 CLAUDE.md
+FUND_INTEGRATION.md
+NOTES.md
+TODO.md
 *.zip
+
+# Development scripts with personal data
+test-*.js
+update-*.js
+real-*.js
+*-real-*.js
+*personal*.js
+*private*.js
+
+# Backup files
+*.backup
+*.bak
+wrangler.toml.backup

@@ -1,11 +1,38 @@
-# Shared secret for webhook authentication (must match Baileys service)
-WEBHOOK_SECRET=your-webhook-secret
+# Core Configuration
+WEBHOOK_SECRET=your-webhook-secret-here
+OPENAI_API_KEY=sk-your-openai-api-key-here
 
-# URL of your Baileys service
-BAILEYS_SERVICE_URL=http://localhost:3000
+# Task Management (Optional)
+TODOIST_API_TOKEN=your-todoist-token-here
 
-# OpenAI API key for audio transcription
-OPENAI_API_KEY=sk-...
+# Voice Classification
+CLASSIFICATION_ENABLED=true
+CLASSIFICATION_CONFIDENCE_THRESHOLD=0.8
 
-# Todoist API token
-TODOIST_API_TOKEN=...
+# Obsidian Integration (Optional)
+OBSIDIAN_STORAGE_TYPE=github
+GITHUB_TOKEN=your-github-personal-access-token
+GITHUB_OWNER=your-github-username
+GITHUB_REPO=your-obsidian-vault-repo
+OBSIDIAN_VAULT_PATH=.
+OBSIDIAN_NOTE_FORMAT=daily
+OBSIDIAN_NOTE_PATH=WhatsApp Notes
+
+# Portfolio Tracking (Optional)
+BRAPI_TOKEN=your-brapi-api-token
+PORTFOLIO_WHATSAPP_NUMBER=5511999999999
+
+# Fund Tracking (Optional)
+ZAISEN_API_URL=https://your-fund-api.com
+ZAISEN_API_KEY=your-fund-api-key
+
+# Portfolio Data (JSON format - replace with your positions)
+PORTFOLIO_DATA=[{"ticker":"AAPL34","shares":100,"avgPrice":50.0},{"ticker":"VALE3","shares":500,"avgPrice":60.0}]
+
+# Fund Portfolio Data (JSON format - replace with your funds)
+FUND_PORTFOLIO_DATA=[{"cnpj":"00.000.000/0001-00","name":"Example Fund","quotas":100,"investedAmount":10000,"avgPrice":100.0,"purchaseDate":"2024-01-15"}]
+
+# WhatsApp Automation (Optional)
+Z_API_INSTANCE_ID=your-z-api-instance-id
+Z_API_INSTANCE_TOKEN=your-z-api-instance-token
+Z_API_SECURITY_TOKEN=your-z-api-security-token

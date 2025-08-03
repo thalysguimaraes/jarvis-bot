@@ -4,6 +4,10 @@ compatibility_date = "2025-01-13"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
+# Portfolio tracker cron - Monday to Friday at 6pm BRT (21:00 UTC)
+[triggers]
+crons = ["0 21 * * 1-5"]
+
 [env.production]
 name = "jarvis-bot-production"
 
@@ -14,12 +18,36 @@ preview_id = "ca38cdcf4dd8475ba03ec086629ae83a"
 
 [vars]
 ENVIRONMENT = "development"
+CLASSIFICATION_ENABLED = "true"
+CLASSIFICATION_CONFIDENCE_THRESHOLD = "0.8"
+OBSIDIAN_STORAGE_TYPE = "github"
+OBSIDIAN_VAULT_PATH = "."
+OBSIDIAN_NOTE_FORMAT = "daily"
+OBSIDIAN_NOTE_PATH = "WhatsApp Notes"
 
 # [[analytics_engine_datasets]]
 # binding = "ANALYTICS"
 
-# Add these to .dev.vars for local development
+# Secrets are set via wrangler secret put
+# For local development, add these to .dev.vars:
 # WEBHOOK_SECRET = "your-webhook-secret"
-# BAILEYS_SERVICE_URL = "http://localhost:3000"
 # OPENAI_API_KEY = "your-openai-key"
 # TODOIST_API_TOKEN = "your-todoist-token"
+# GITHUB_TOKEN = "your-github-token"
+# GITHUB_OWNER = "your-github-username"
+# GITHUB_REPO = "your-obsidian-vault"
+# OBSIDIAN_STORAGE_TYPE = "github"
+# OBSIDIAN_VAULT_PATH = "."
+# OBSIDIAN_NOTE_FORMAT = "daily"
+# Portfolio Tracker secrets:
+# BRAPI_TOKEN = "your-brapi-token"
+# Z_API_INSTANCE_ID = "your-z-api-instance-id"
+# Z_API_INSTANCE_TOKEN = "your-z-api-instance-token"
+# Z_API_SECURITY_TOKEN = "your-z-api-security-token"
+# PORTFOLIO_WHATSAPP_NUMBER = "your-whatsapp-number"
+# Fund Tracker secrets:
+# ZAISEN_API_URL = "your-zaisen-api-url"
+# ZAISEN_API_KEY = "your-zaisen-api-key"
+# Portfolio data (JSON format):
+# PORTFOLIO_DATA = '[{"ticker":"AAPL34","shares":100,"avgPrice":50.0}]'
+# FUND_PORTFOLIO_DATA = '[{"cnpj":"00.000.000/0001-00","name":"Example Fund","quotas":100,"investedAmount":10000,"avgPrice":100.0,"purchaseDate":"2024-01-15"}]'
