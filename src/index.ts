@@ -108,14 +108,67 @@ export default {
 
 async function handleWebhookMessage(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
-    // Validate webhook secret with Z-API security token
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || authHeader !== `Bearer ${env.WEBHOOK_SECRET}`) {
-      return new Response('Unauthorized', { status: 401 });
-    }
+    // Z-API webhooks don't send authentication headers
+    // We'll rely on the webhook URL being private and HTTPS
+    console.log('Webhook received from Z-API');
     
     // Parse the webhook payload
     const payload = await request.json() as ZApiWebhookPayload;
+    
+    console.log('Raw webhook payload:', JSON.stringify(payload, null, 2));
+    
+    const userPhone = payload.from || payload.phone || payload.senderNumber;
+    
+    console.log('Webhook payload:', {
+      type: payload.type,
+      hasAudio: !!payload.audio,
+      fromMe: payload.fromMe,
+      isGroup: payload.isGroup,
+      phone: userPhone,
+      messageId: payload.messageId,
+      hasAudioData: !!payload.audio?.data,
+      hasAudioUrl: !!payload.audio?.audioUrl
+    });
+    
+    console.log('Environment check:', {
+      hasInstanceId: !!env.Z_API_INSTANCE_ID,
+      hasInstanceToken: !!env.Z_API_INSTANCE_TOKEN,
+      hasSecurityToken: !!env.Z_API_SECURITY_TOKEN,
+      hasOpenAI: !!env.OPENAI_API_KEY,
+      hasTodoist: !!env.TODOIST_API_TOKEN
+    });
+    
+    // Test: Send immediate response to confirm Z-API works
+    // DISABLED - This test message might interfere with the audio processing
+    /*
+    if (env.Z_API_INSTANCE_ID && env.Z_API_INSTANCE_TOKEN && env.Z_API_SECURITY_TOKEN && userPhone) {
+      try {
+        const testResponse = await fetch(`https://api.z-api.io/instances/${env.Z_API_INSTANCE_ID}/token/${env.Z_API_INSTANCE_TOKEN}/send-text`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Client-Token': env.Z_API_SECURITY_TOKEN
+          },
+          body: JSON.stringify({
+            phone: userPhone,
+            message: '✅ Webhook received! Testing Z-API connection...'
+          })
+        });
+        
+        console.log('Test message response:', {
+          status: testResponse.status,
+          ok: testResponse.ok
+        });
+        
+        if (!testResponse.ok) {
+          const errorText = await testResponse.text();
+          console.error('Test message failed:', errorText);
+        }
+      } catch (error) {
+        console.error('Test message error:', error);
+      }
+    }
+    */
     
     // Only process audio messages
     if (!payload.audio) {

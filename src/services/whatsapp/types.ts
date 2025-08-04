@@ -1,20 +1,24 @@
 // Z-API webhook payload types
 export interface ZApiWebhookPayload {
-  waitingMessage: boolean;
-  isGroup: boolean;
-  instanceId: string;
+  waitingMessage?: boolean;
+  isGroup?: boolean;
+  instanceId?: string;
   messageId: string;
-  phone: string;
+  phone?: string; // Legacy field
+  from?: string; // Actual field from Z-API
+  to?: string;
   fromMe: boolean;
-  momment: number; // timestamp in milliseconds
-  status: string;
-  chatName: string;
+  momment?: number; // timestamp in milliseconds
+  timestamp?: number; // Alternative timestamp field
+  status?: string;
+  chatName?: string;
   senderPhoto?: string;
-  senderName: string;
+  senderName?: string;
+  senderNumber?: string;
   participantPhone?: string;
   participantLid?: string;
   photo?: string;
-  broadcast: boolean;
+  broadcast?: boolean;
   type: string;
   
   // Message content based on type
@@ -28,11 +32,14 @@ export interface ZApiTextData {
 }
 
 export interface ZApiAudioData {
-  ptt: boolean; // Push to Talk (voice message)
-  seconds: number; // duration in seconds
-  audioUrl: string; // URL to download audio file
-  mimeType: string;
-  viewOnce: boolean;
+  ptt?: boolean; // Push to Talk (voice message)
+  seconds?: number; // duration in seconds
+  duration?: number; // Alternative duration field
+  audioUrl?: string; // URL to download audio file (legacy)
+  data?: string; // Base64 encoded audio data
+  mimeType?: string;
+  mimetype?: string; // Alternative field name
+  viewOnce?: boolean;
 }
 
 export interface ZApiImageData {

@@ -19,12 +19,13 @@ export class AudioProcessor {
         return;
       }
       
-      // Send initial response
-      await this.sendResponse(payload.phone, '🎤 Áudio recebido! Processando transcrição...');
+      const userPhone = payload.from || payload.phone || payload.senderNumber;
       
+      // Send initial response
+      await this.sendResponse(userPhone, '🎤 Áudio recebido! Processando transcrição...');
       const context = {
         env: this.env,
-        userId: payload.phone,
+        userId: userPhone,
         todoistToken: this.env.TODOIST_API_TOKEN,
         zapiPayload: payload
       };
@@ -653,21 +654,39 @@ export class AudioProcessor {
     }
     
     try {
-      const response = await fetch(`https://api.z-api.io/instances/${this.env.Z_API_INSTANCE_ID}/token/${this.env.Z_API_INSTANCE_TOKEN}/send-text`, {
+      const url = `https://api.z-api.io/instances/${this.env.Z_API_INSTANCE_ID}/token/${this.env.Z_API_INSTANCE_TOKEN}/send-text`;
+      const body = {
+        phone: to,
+        message
+      };
+      
+      console.log('Sending Z-API message from AudioProcessor:', {
+        url,
+        to,
+        messageLength: message.length,
+        hasClientToken: !!this.env.Z_API_SECURITY_TOKEN
+      });
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Client-Token': this.env.Z_API_SECURITY_TOKEN
         },
-        body: JSON.stringify({
-          phone: to,
-          message
-        })
+        body: JSON.stringify(body)
       });
       
       if (!response.ok) {
-        throw new Error(`Z-API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Z-API error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Z-API error: ${response.status} - ${errorText}`);
       }
+      
+      console.log('Z-API message sent successfully from AudioProcessor');
     } catch (error) {
       console.error('Error sending response via Z-API:', error);
     }
