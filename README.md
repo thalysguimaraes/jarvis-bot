@@ -28,6 +28,7 @@ Most AI assistants are expensive or limited. JarvisBot offers:
 
 ### 📝 Note Management  
 - **Obsidian Integration**: Notes saved directly to your vault
+- **Plugin Sync**: Use the [Jarvis Obsidian Sync](https://github.com/thalysguimaraes/jarvis-obsidian-sync) plugin for seamless vault integration
 - **GitHub Sync**: Version control for your notes
 - **Daily/Individual**: Flexible note organization
 
@@ -324,6 +325,23 @@ curl https://your-worker.workers.dev/test-config
 # Check status
 curl https://your-worker.workers.dev/status
 ```
+
+## 🔗 Integrations & Plugins
+
+### Obsidian Plugin
+
+For seamless note management, use the companion [**Jarvis Obsidian Sync**](https://github.com/thalysguimaraes/jarvis-obsidian-sync) plugin:
+
+- 🎤 **Automatic Sync**: Voice notes sync directly to your Obsidian vault
+- ⚡ **Real-time**: Configurable auto-sync intervals
+- 📁 **Smart Organization**: Custom folders and naming patterns
+- 🔒 **Secure**: API key authentication
+- 📝 **Rich Formatting**: Notes include timestamps and metadata
+
+**Quick Setup:**
+1. Install the plugin in Obsidian
+2. Configure with your Jarvis Bot URL and API key (set `OBSIDIAN_API_KEY` in your environment)
+3. Choose your sync preferences
 
 ## 🤝 Contributing
 
