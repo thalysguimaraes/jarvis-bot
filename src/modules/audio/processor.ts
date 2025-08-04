@@ -2,7 +2,7 @@ import { ZApiWebhookPayload } from '@/services/whatsapp/types';
 import { TodoistClient } from '@/modules/todo/client';
 import { parseTaskFromTranscription } from '@/modules/todo/taskParser';
 import { TranscriptionClassifier, ClassificationResult } from '@/modules/classification';
-import { KVNoteStorage } from '@/modules/kv-notes';
+
 import { Config } from '@/utils/config';
 
 interface AudioContext {
@@ -274,9 +274,14 @@ async function processAsNote(
       '📝 Salvando nota para sincronização com Obsidian...'
     );
     
-    // Save to KV storage
-    const kvStorage = new KVNoteStorage(context.env.USER_CONFIGS);
-    const noteId = await kvStorage.saveNote(transcription, userPhone);
+    // Save to KV storage for voice sync
+    const { EnhancedKVNoteStorage } = await import('@/modules/voice-sync');
+    const kvStorage = new EnhancedKVNoteStorage(context.env.USER_CONFIGS);
+    const noteId = await kvStorage.saveNote(transcription, userPhone, {
+      audioUrl: payload.audio?.audioUrl,
+      duration: payload.audio?.seconds || payload.audio?.duration,
+      classification: 'note'
+    });
     
     console.log('Note saved to KV:', {
       noteId,
@@ -296,7 +301,7 @@ async function processAsNote(
       userPhone,
       '❌ Erro ao salvar nota. Criando tarefa no Todoist como fallback...'
     );
-    await processAsTask(`[NOTA] ${transcription}`, payload, context);
+    await processAsTask(`[NOTA] ${transcription}`, payload, context, userPhone);
   }
 }
 
@@ -416,7 +421,7 @@ async function processAsFund(
         taskContent = `[FUNDO] ${transcription}`;
     }
     
-    await processAsTask(taskContent, payload, context);
+    await processAsTask(taskContent, payload, context, userPhone);
   }
 }
 

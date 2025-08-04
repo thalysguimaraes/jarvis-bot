@@ -23,6 +23,9 @@ OBSIDIAN_VAULT_PATH=.
 OBSIDIAN_NOTE_FORMAT=daily
 OBSIDIAN_NOTE_PATH=WhatsApp Notes
 
+# Obsidian Plugin API (Required for voice sync plugin)
+OBSIDIAN_API_KEY=your-secure-api-key-for-obsidian-plugin
+
 # Portfolio Tracking (Optional)
 BRAPI_TOKEN=your-brapi-api-token
 PORTFOLIO_WHATSAPP_NUMBER=5511999999999

@@ -44,7 +44,20 @@ export default {
     }
     
     if (url.pathname === '/health') {
-      return new Response('OK', { status: 200 });
+      return new Response(JSON.stringify({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        service: 'jarvis-bot-voice-sync' 
+      }), {
+        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'authorization, content-type, Authorization, Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Max-Age': '86400'
+        }
+      });
     }
     
     if (url.pathname === '/status') {
@@ -61,12 +74,19 @@ export default {
     
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
+      // Special handling for voice sync endpoints
+      if (url.pathname.startsWith('/api/voice-notes/') || url.pathname === '/health') {
+        const { VoiceNoteSyncAPI } = await import('./modules/voice-sync');
+        const api = new VoiceNoteSyncAPI(env);
+        return api.handleOptions();
+      }
+      
       return new Response(null, {
         status: 200,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Headers': 'authorization, content-type, Authorization, Content-Type',
           'Access-Control-Max-Age': '86400',
         }
       });
@@ -94,6 +114,33 @@ export default {
     
     if (url.pathname === '/test-fund-storage' && request.method === 'POST') {
       return handleTestFundStorage(request, env);
+    }
+    
+    // Simple test endpoint for CORS/connectivity debugging
+    if (url.pathname === '/test-connection' && request.method === 'GET') {
+      return new Response(JSON.stringify({ 
+        status: 'connection-ok', 
+        timestamp: new Date().toISOString(),
+        message: 'Basic connectivity working'
+      }), {
+        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Authorization, Content-Type'
+        }
+      });
+    }
+    
+    // Voice sync API for Obsidian plugin
+    if (url.pathname === '/api/voice-notes/unprocessed' && request.method === 'GET') {
+      return handleGetVoiceNotes(request, env);
+    }
+    
+    if (url.pathname.startsWith('/api/voice-notes/') && url.pathname.endsWith('/processed') && request.method === 'POST') {
+      const pathParts = url.pathname.split('/');
+      const noteId = pathParts[3]; // Extract ID from /api/voice-notes/{id}/processed
+      return handleMarkNoteProcessed(request, env, noteId);
     }
     
     // Debug: Log all requests
@@ -564,4 +611,16 @@ async function handleTestFundStorage(request: Request, env: Env): Promise<Respon
       headers: { 'Content-Type': 'application/json' }
     });
   }
+}
+
+async function handleGetVoiceNotes(request: Request, env: Env): Promise<Response> {
+  const { VoiceNoteSyncAPI } = await import('./modules/voice-sync');
+  const api = new VoiceNoteSyncAPI(env);
+  return api.getUnprocessedNotes(request);
+}
+
+async function handleMarkNoteProcessed(request: Request, env: Env, noteId: string): Promise<Response> {
+  const { VoiceNoteSyncAPI } = await import('./modules/voice-sync');
+  const api = new VoiceNoteSyncAPI(env);
+  return api.markNoteAsProcessed(request, noteId);
 }
