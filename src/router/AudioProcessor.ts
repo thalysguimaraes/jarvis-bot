@@ -13,13 +13,13 @@ export class AudioProcessor {
   }
   
   public async handleAudioMessage(payload: ZApiWebhookPayload): Promise<void> {
+    const userPhone = payload.from || payload.phone || payload.senderNumber;
+    
     try {
       if (!payload.audio) {
         console.log('Invalid audio message received');
         return;
       }
-      
-      const userPhone = payload.from || payload.phone || payload.senderNumber;
       
       // Send initial response
       await this.sendResponse(userPhone, '🎤 Áudio recebido! Processando transcrição...');
@@ -35,7 +35,7 @@ export class AudioProcessor {
     } catch (error) {
       console.error('Error processing audio:', error);
       await this.sendResponse(
-        payload.phone,
+        userPhone,
         '❌ Erro ao processar o áudio. Por favor, tente novamente.'
       );
     }
@@ -647,6 +647,12 @@ export class AudioProcessor {
   }
    
   private async sendResponse(to: string, message: string): Promise<void> {
+    // Validate phone number
+    if (!to || to.trim() === '') {
+      console.error('Cannot send message: phone number is empty');
+      return;
+    }
+    
     // Send response back via Z-API
     if (!this.env.Z_API_INSTANCE_ID || !this.env.Z_API_INSTANCE_TOKEN || !this.env.Z_API_SECURITY_TOKEN) {
       console.error('Z-API credentials not configured');
