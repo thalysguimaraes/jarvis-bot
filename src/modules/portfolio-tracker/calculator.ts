@@ -1,14 +1,15 @@
 import { PortfolioCalculation } from './types';
-import { PORTFOLIO } from './portfolio-data';
+import { loadPortfolioData } from './portfolio-data';
 import { fetchAllPrices } from './stock-api';
 
-export async function calculatePortfolioValue(brapiToken: string): Promise<PortfolioCalculation> {
-  const stockData = await fetchAllPrices(brapiToken);
+export async function calculatePortfolioValue(brapiToken: string, portfolioData?: string): Promise<PortfolioCalculation> {
+  const portfolio = loadPortfolioData(portfolioData);
+  const stockData = await fetchAllPrices(brapiToken, portfolio);
   
   let currentValue = 0;
   let previousCloseValue = 0;
   
-  const details = PORTFOLIO.map((item) => {
+  const details = portfolio.map((item) => {
     const data = stockData.get(item.ticker);
     if (data) {
       const position = data.price * item.shares;
@@ -33,7 +34,7 @@ export async function calculatePortfolioValue(brapiToken: string): Promise<Portf
     };
   });
 
-  const totalCost = PORTFOLIO.reduce((sum, item) => sum + (item.avgPrice * item.shares), 0);
+  const totalCost = portfolio.reduce((sum, item) => sum + (item.avgPrice * item.shares), 0);
   const dailyPnL = currentValue - previousCloseValue;
   const dailyPercentageChange = previousCloseValue > 0 ? (dailyPnL / previousCloseValue) * 100 : 0;
   const totalPnL = currentValue - totalCost;

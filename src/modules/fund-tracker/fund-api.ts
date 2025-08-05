@@ -55,10 +55,9 @@ export class ZaisenFundAPI {
   async getFundQuote(cnpj: string): Promise<LatestQuoteResponse | null> {
     try {
       const cleanCnpj = cnpj.replace(/[^\d]/g, '');
-      const formattedCnpj = cleanCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 
       const response = await this.makeRequest<LatestQuoteResponse>(
-        `/api/v1/fundos/${formattedCnpj}/ultima-cota`
+        `/api/v1/fundos/${cleanCnpj}/ultima-cota`
       );
 
       return response;
@@ -71,10 +70,9 @@ export class ZaisenFundAPI {
   async getFundDetails(cnpj: string): Promise<FundDetails | null> {
     try {
       const cleanCnpj = cnpj.replace(/[^\d]/g, '');
-      const formattedCnpj = cleanCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 
       const response = await this.makeRequest<FundDetails>(
-        `/api/v1/fundos/${formattedCnpj}`,
+        `/api/v1/fundos/${cleanCnpj}`,
         {
           include_latest_quota: 'true',
         }

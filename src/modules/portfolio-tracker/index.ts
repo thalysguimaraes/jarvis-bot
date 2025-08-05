@@ -2,7 +2,7 @@ import { calculatePortfolioValue } from './calculator';
 import { formatPortfolioMessage } from './message-formatter';
 import { sendWhatsAppMessage } from './whatsapp-sender';
 import { calculateFundPortfolioValue, ZaisenFundAPI } from '../fund-tracker';
-import { FUND_PORTFOLIO } from '../fund-tracker/fund-data';
+import { loadFundPortfolioData } from '../fund-tracker/fund-data';
 
 export interface PortfolioConfig {
   brapiToken: string;
@@ -23,11 +23,11 @@ export interface CombinedPortfolioData {
 export class PortfolioTracker {
   constructor(private config: PortfolioConfig) {}
 
-  async sendDailyReport(): Promise<void> {
+  async sendDailyReport(portfolioDataEnv?: string, fundPortfolioDataEnv?: string): Promise<void> {
     try {
       console.log('Starting portfolio calculation...');
       
-      const portfolioData = await this.getCombinedPortfolioData();
+      const portfolioData = await this.getCombinedPortfolioData(portfolioDataEnv, fundPortfolioDataEnv);
       const message = formatPortfolioMessage(portfolioData.stocks, portfolioData.funds, portfolioData.hasFunds);
       
       await sendWhatsAppMessage(
@@ -45,29 +45,30 @@ export class PortfolioTracker {
     }
   }
 
-  async getPortfolioData() {
-    return calculatePortfolioValue(this.config.brapiToken);
+  async getPortfolioData(portfolioData?: string) {
+    return calculatePortfolioValue(this.config.brapiToken, portfolioData);
   }
 
-  async getFundPortfolioData() {
+  async getFundPortfolioData(fundPortfolioData?: string) {
     if (!this.config.zaisenApiUrl || !this.config.zaisenApiKey) {
       console.log('Fund tracking disabled - missing Zaisen API configuration');
       return null;
     }
 
     try {
+      const fundPortfolio = loadFundPortfolioData(fundPortfolioData);
       const fundAPI = new ZaisenFundAPI(this.config.zaisenApiUrl, this.config.zaisenApiKey);
-      return await calculateFundPortfolioValue(FUND_PORTFOLIO, fundAPI);
+      return await calculateFundPortfolioValue(fundPortfolio, fundAPI);
     } catch (error) {
       console.error('Error calculating fund portfolio:', error);
       return null;
     }
   }
 
-  async getCombinedPortfolioData(): Promise<CombinedPortfolioData> {
+  async getCombinedPortfolioData(portfolioData?: string, fundPortfolioData?: string): Promise<CombinedPortfolioData> {
     const [stocksData, fundsData] = await Promise.all([
-      calculatePortfolioValue(this.config.brapiToken),
-      this.getFundPortfolioData()
+      calculatePortfolioValue(this.config.brapiToken, portfolioData),
+      this.getFundPortfolioData(fundPortfolioData)
     ]);
 
     return {

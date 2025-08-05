@@ -35,17 +35,20 @@ export async function calculateFundPortfolioValue(
   const details = portfolio.map((position) => {
     const quote = quoteData.get(position.cnpj);
     if (quote) {
-      const quotas = position.quotas || position.shares || 0;
-      const positionValue = quote.ultima_cota * quotas;
+      // Use stored quotas or calculate from invested amount ÷ average price
+      const quotas = position.quotas || (position.investedAmount && position.avgPrice ? position.investedAmount / position.avgPrice : 0);
+      
+      // Calculate current value: quotas × current quote
+      const positionValue = parseFloat(quote.ultima_cota) * quotas;
       currentValue += positionValue;
       
       return {
         cnpj: position.cnpj,
         name: position.name || position.fundName || '',
-        currentQuote: quote.ultima_cota,
+        currentQuote: parseFloat(quote.ultima_cota),
         position: positionValue,
-        dailyChange: quote.variacao_dia * quotas,
-        dailyChangePercent: quote.variacao_percentual
+        dailyChange: parseFloat(quote.variacao_dia || '0') * quotas,
+        dailyChangePercent: parseFloat(quote.variacao_percentual || '0')
       };
     }
     return {

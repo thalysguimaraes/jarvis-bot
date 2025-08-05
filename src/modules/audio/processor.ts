@@ -16,13 +16,13 @@ export async function processAudioMessage(
   payload: ZApiWebhookPayload,
   context: AudioContext
 ): Promise<void> {
+  // Get the user phone number from various possible fields - moved outside try block
+  const userPhone = payload.from || payload.phone || payload.senderNumber;
+  
   try {
     if (!payload.audio) {
       throw new Error('No audio data in payload');
     }
-    
-    // Get the user phone number from various possible fields
-    const userPhone = payload.from || payload.phone || payload.senderNumber;
     
     let audioBuffer: ArrayBuffer;
     

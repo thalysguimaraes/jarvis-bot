@@ -4,9 +4,10 @@ compatibility_date = "2025-01-13"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
-# Portfolio tracker cron - Monday to Friday at 6pm BRT (21:00 UTC)
+# Portfolio tracker cron - Monday to Friday at 6pm BRT (22:00 UTC in summer, 21:00 UTC in winter)
+# Currently using 22:00 UTC for BRT summer time (UTC-3)
 [triggers]
-crons = ["0 21 * * 1-5"]
+crons = ["0 22 * * 1-5"]
 
 [env.production]
 name = "jarvis-bot-production"

@@ -26,7 +26,7 @@ export default {
           zaisenApiKey: env.ZAISEN_API_KEY,
         });
         
-        await portfolioTracker.sendDailyReport();
+        await portfolioTracker.sendDailyReport(env.PORTFOLIO_DATA, env.FUND_PORTFOLIO_DATA);
         console.log('Daily portfolio report sent successfully');
       } catch (error) {
         console.error('Error sending daily portfolio report:', error);
@@ -445,8 +445,8 @@ async function handleTestPortfolio(request: Request, env: Env): Promise<Response
       zaisenApiKey: env.ZAISEN_API_KEY,
     });
     
-    const combinedData = await portfolioTracker.getCombinedPortfolioData();
-    await portfolioTracker.sendDailyReport();
+    const combinedData = await portfolioTracker.getCombinedPortfolioData(env.PORTFOLIO_DATA, env.FUND_PORTFOLIO_DATA);
+    await portfolioTracker.sendDailyReport(env.PORTFOLIO_DATA, env.FUND_PORTFOLIO_DATA);
     
     return new Response(JSON.stringify({ 
       success: true, 
