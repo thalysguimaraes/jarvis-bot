@@ -1,0 +1,310 @@
+name: Test and Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  validate:
+    name: Validate Environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check environment variables
+        run: |
+          echo "Checking required environment variables..."
+          node -e "
+            const required = [
+              'Z_API_INSTANCE_ID',
+              'Z_API_INSTANCE_TOKEN',
+              'Z_API_SECURITY_TOKEN',
+              'OPENAI_API_KEY',
+              'TODOIST_API_TOKEN',
+              'OBSIDIAN_API_KEY',
+              'BRAPI_TOKEN',
+              'PORTFOLIO_WHATSAPP_NUMBER',
+              'WEBHOOK_SECRET'
+            ];
+            const missing = required.filter(key => !process.env[key]);
+            if (missing.length > 0) {
+              console.error('Missing required environment variables:', missing);
+              process.exit(1);
+            }
+            console.log('All required environment variables are set');
+          "
+        env:
+          Z_API_INSTANCE_ID: ${{ secrets.Z_API_INSTANCE_ID }}
+          Z_API_INSTANCE_TOKEN: ${{ secrets.Z_API_INSTANCE_TOKEN }}
+          Z_API_SECURITY_TOKEN: ${{ secrets.Z_API_SECURITY_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TODOIST_API_TOKEN: ${{ secrets.TODOIST_API_TOKEN }}
+          OBSIDIAN_API_KEY: ${{ secrets.OBSIDIAN_API_KEY }}
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          PORTFOLIO_WHATSAPP_NUMBER: ${{ secrets.PORTFOLIO_WHATSAPP_NUMBER }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      matrix:
+        test-type: [unit, integration]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          if [ "${{ matrix.test-type }}" = "unit" ]; then
+            npm run test:run -- tests/unit/
+          else
+            npm run test:run -- tests/integration/
+          fi
+      
+      - name: Upload coverage reports
+        if: matrix.test-type == 'unit'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  lint:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: true
+      
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Run security scan with Snyk
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Deploy to Cloudflare Workers (Staging)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          environment: staging
+          secrets: |
+            Z_API_INSTANCE_ID
+            Z_API_INSTANCE_TOKEN
+            Z_API_SECURITY_TOKEN
+            OPENAI_API_KEY
+            TODOIST_API_TOKEN
+            OBSIDIAN_API_KEY
+            BRAPI_TOKEN
+            PORTFOLIO_WHATSAPP_NUMBER
+            WEBHOOK_SECRET
+            ZAISEN_API_URL
+            ZAISEN_API_KEY
+        env:
+          Z_API_INSTANCE_ID: ${{ secrets.Z_API_INSTANCE_ID }}
+          Z_API_INSTANCE_TOKEN: ${{ secrets.Z_API_INSTANCE_TOKEN }}
+          Z_API_SECURITY_TOKEN: ${{ secrets.Z_API_SECURITY_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TODOIST_API_TOKEN: ${{ secrets.TODOIST_API_TOKEN }}
+          OBSIDIAN_API_KEY: ${{ secrets.OBSIDIAN_API_KEY }}
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          PORTFOLIO_WHATSAPP_NUMBER: ${{ secrets.PORTFOLIO_WHATSAPP_NUMBER }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          ZAISEN_API_URL: ${{ secrets.ZAISEN_API_URL }}
+          ZAISEN_API_KEY: ${{ secrets.ZAISEN_API_KEY }}
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [test, lint, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Run smoke tests
+        run: npm run test:smoke || true
+        continue-on-error: true
+      
+      - name: Deploy to Cloudflare Workers (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          environment: production
+          secrets: |
+            Z_API_INSTANCE_ID
+            Z_API_INSTANCE_TOKEN
+            Z_API_SECURITY_TOKEN
+            OPENAI_API_KEY
+            TODOIST_API_TOKEN
+            OBSIDIAN_API_KEY
+            BRAPI_TOKEN
+            PORTFOLIO_WHATSAPP_NUMBER
+            WEBHOOK_SECRET
+            ZAISEN_API_URL
+            ZAISEN_API_KEY
+        env:
+          Z_API_INSTANCE_ID: ${{ secrets.Z_API_INSTANCE_ID }}
+          Z_API_INSTANCE_TOKEN: ${{ secrets.Z_API_INSTANCE_TOKEN }}
+          Z_API_SECURITY_TOKEN: ${{ secrets.Z_API_SECURITY_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TODOIST_API_TOKEN: ${{ secrets.TODOIST_API_TOKEN }}
+          OBSIDIAN_API_KEY: ${{ secrets.OBSIDIAN_API_KEY }}
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          PORTFOLIO_WHATSAPP_NUMBER: ${{ secrets.PORTFOLIO_WHATSAPP_NUMBER }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          ZAISEN_API_URL: ${{ secrets.ZAISEN_API_URL }}
+          ZAISEN_API_KEY: ${{ secrets.ZAISEN_API_KEY }}
+      
+      - name: Verify deployment
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 30
+          curl -f https://jarvis-bot.workers.dev/health || exit 1
+      
+      - name: Create deployment notification
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: context.payload.deployment.id,
+              state: 'success',
+              description: 'Deployed to production',
+              environment_url: 'https://jarvis-bot.workers.dev'
+            });
+
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: failure() && needs.deploy-production.result == 'failure'
+    needs: deploy-production
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.before }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build previous version
+        run: npm run build
+      
+      - name: Rollback to previous version
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          environment: production
+          command: rollback
+      
+      - name: Notify rollback
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '⚠️ Production deployment failed and was rolled back to the previous version.'
+            });

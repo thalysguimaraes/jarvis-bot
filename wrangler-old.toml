@@ -1,0 +1,24 @@
+name = "jarvis-bot"
+main = "src/index.ts"  # Old monolithic architecture
+compatibility_date = "2025-01-13"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Scheduled tasks for old architecture:
+# Portfolio tracker - Monday to Friday at 6pm BRT (22:00 UTC in summer, 21:00 UTC in winter)  
+# GitHub discovery - Monday to Friday at 9am BRT (12:00 UTC in summer, 11:00 UTC in winter)
+[triggers]
+crons = ["0 22 * * 1-5", "0 12 * * 1-5"]
+
+[[kv_namespaces]]
+binding = "USER_CONFIGS"
+id = "58013f2718e84f5cae8f325672455da5"
+preview_id = "ca38cdcf4dd8475ba03ec086629ae83a"
+
+[vars]
+CLASSIFICATION_ENABLED = "true"
+CLASSIFICATION_CONFIDENCE_THRESHOLD = "0.8"
+OBSIDIAN_STORAGE_TYPE = "github"
+OBSIDIAN_VAULT_PATH = "."
+OBSIDIAN_NOTE_FORMAT = "daily"
+OBSIDIAN_NOTE_PATH = "WhatsApp Notes"

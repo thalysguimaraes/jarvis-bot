@@ -1,0 +1,27 @@
+[
+  {
+    "ticker": "AAPL34",
+    "shares": 100,
+    "avgPrice": 50.00
+  },
+  {
+    "ticker": "GOOGL34",
+    "shares": 50,
+    "avgPrice": 120.00
+  },
+  {
+    "ticker": "MSFT34",
+    "shares": 75,
+    "avgPrice": 80.00
+  },
+  {
+    "ticker": "VALE3",
+    "shares": 200,
+    "avgPrice": 70.00
+  },
+  {
+    "ticker": "PETR4",
+    "shares": 150,
+    "avgPrice": 35.00
+  }
+]

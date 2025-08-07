@@ -1,30 +1,25 @@
 name = "jarvis-bot"
-main = "src/index.ts"
+main = "src/index.ts"  # Modular architecture
 compatibility_date = "2025-01-13"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
-# Portfolio tracker cron - Monday to Friday at 6pm BRT (22:00 UTC in summer, 21:00 UTC in winter)
-# Currently using 22:00 UTC for BRT summer time (UTC-3)
+# Scheduled tasks:
+# Daily portfolio report - 9 AM BRT (12:00 UTC)
+# Fund portfolio check - 6 PM BRT (21:00 UTC)
 [triggers]
-crons = ["0 22 * * 1-5"]
+crons = ["0 12 * * *", "0 21 * * *"]
 
-[env.production]
-name = "jarvis-bot-production"
-
+# KV Namespace for user configurations and voice notes
 [[kv_namespaces]]
 binding = "USER_CONFIGS"
 id = "58013f2718e84f5cae8f325672455da5"
 preview_id = "ca38cdcf4dd8475ba03ec086629ae83a"
 
+# Application configuration variables
 [vars]
-ENVIRONMENT = "development"
 CLASSIFICATION_ENABLED = "true"
 CLASSIFICATION_CONFIDENCE_THRESHOLD = "0.8"
-OBSIDIAN_STORAGE_TYPE = "github"
-OBSIDIAN_VAULT_PATH = "."
-OBSIDIAN_NOTE_FORMAT = "daily"
-OBSIDIAN_NOTE_PATH = "WhatsApp Notes"
 
 # [[analytics_engine_datasets]]
 # binding = "ANALYTICS"

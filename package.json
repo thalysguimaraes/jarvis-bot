@@ -4,10 +4,19 @@
   "main": "index.js",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:old": "wrangler dev --config wrangler-old.toml",
     "build": "wrangler types && tsc --noEmit",
-    "deploy": "wrangler deploy --env=\"\"",
+    "deploy": "wrangler deploy",
+    "deploy:old": "wrangler deploy --config wrangler-old.toml",
+    "setup:secrets": "bash scripts/setup-secrets-from-devvars.sh",
     "typecheck": "wrangler types && tsc --noEmit",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch",
+    "logs": "wrangler tail"
   },
   "keywords": [
     "whatsapp",
@@ -29,8 +38,18 @@
   "description": "AI-powered WhatsApp personal assistant with voice commands, task management, portfolio tracking, and fund monitoring",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250712.0",
-    "@types/node": "^24.0.13",
+    "@types/node": "^24.2.0",
+    "@vitest/ui": "^3.2.4",
+    "c8": "^10.1.3",
+    "miniflare": "^4.20250803.0",
+    "msw": "^2.10.4",
     "typescript": "^5.9.2",
-    "wrangler": "^4.24.3"
+    "vitest": "^3.2.4",
+    "vitest-environment-miniflare": "^2.14.4",
+    "wrangler": "^4.24.3",
+    "zod": "^4.0.15"
+  },
+  "dependencies": {
+    "@the-convocation/twitter-scraper": "^0.17.2"
   }
 }

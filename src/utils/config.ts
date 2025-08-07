@@ -1,5 +1,24 @@
 import { Env } from '@/types/env';
-import { ObsidianConfig, GitHubConfig } from '@/modules/obsidian';
+// Legacy imports - types defined inline below
+// import { ObsidianConfig, GitHubConfig } from '@/modules/obsidian';
+
+interface ObsidianConfig {
+  storageType: string;
+  apiKey?: string;
+  githubToken?: string;
+  githubOwner?: string;
+  githubRepo?: string;
+  vaultPath?: string;
+  noteFormat?: string;
+}
+
+interface GitHubConfig {
+  token: string;
+  owner: string;
+  repo: string;
+  branch?: string;
+  path?: string;
+}
 
 export class Config {
   static isClassificationEnabled(env: Env): boolean {

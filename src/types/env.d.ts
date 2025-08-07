@@ -28,11 +28,26 @@ export interface Env {
   Z_API_INSTANCE_ID?: string;
   Z_API_INSTANCE_TOKEN?: string;
   Z_API_SECURITY_TOKEN?: string;
+  Z_API_CLIENT_TOKEN?: string;
   PORTFOLIO_WHATSAPP_NUMBER?: string;
+  PORTFOLIO_DATA?: string;
+  FUND_PORTFOLIO_DATA?: string;
   
   // Fund Tracker
   ZAISEN_API_URL?: string;
   ZAISEN_API_KEY?: string;
+  
+  // GitHub Discovery
+  GITHUB_DISCOVERY_ENABLED?: string;
+  GITHUB_DISCOVERY_WHATSAPP_NUMBER?: string;
+  TWITTER_BEARER_TOKEN?: string;
+  TWITTER_USERNAME?: string;
+  TWITTER_PASSWORD?: string;
+  TWITTER_EMAIL?: string;
+  
+  // Railway API for GitHub Discovery
+  GITHUB_SCRAPER_API_URL?: string;
+  GITHUB_SCRAPER_API_KEY?: string;
   
   ENVIRONMENT?: 'development' | 'production';
 }

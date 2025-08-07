@@ -1,0 +1,72 @@
+[
+  {
+    "ticker": "AAPL34",
+    "shares": 190,
+    "avgPrice": 57.60
+  },
+  {
+    "ticker": "B5P211",
+    "shares": 3380,
+    "avgPrice": 88.74
+  },
+  {
+    "ticker": "BBAS3",
+    "shares": 200,
+    "avgPrice": 22.27
+  },
+  {
+    "ticker": "BOAC34",
+    "shares": 423,
+    "avgPrice": 51.96
+  },
+  {
+    "ticker": "CMIG4",
+    "shares": 2052,
+    "avgPrice": 10.42
+  },
+  {
+    "ticker": "CTGP34",
+    "shares": 415,
+    "avgPrice": 52.94
+  },
+  {
+    "ticker": "DIVD11",
+    "shares": 1222,
+    "avgPrice": 50.49
+  },
+  {
+    "ticker": "ELET3",
+    "shares": 100,
+    "avgPrice": 41.08
+  },
+  {
+    "ticker": "GOAU4",
+    "shares": 1753,
+    "avgPrice": 10.00
+  },
+  {
+    "ticker": "ITUB4",
+    "shares": 689,
+    "avgPrice": 31.35
+  },
+  {
+    "ticker": "KEPL3",
+    "shares": 2158,
+    "avgPrice": 9.15
+  },
+  {
+    "ticker": "PETR4",
+    "shares": 765,
+    "avgPrice": 37.91
+  },
+  {
+    "ticker": "PSSA3",
+    "shares": 622,
+    "avgPrice": 26.95
+  },
+  {
+    "ticker": "VALE3",
+    "shares": 374,
+    "avgPrice": 64.30
+  }
+]
