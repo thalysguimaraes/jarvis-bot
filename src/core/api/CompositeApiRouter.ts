@@ -82,7 +82,7 @@ export class CompositeApiRouter implements ICompositeApiRouter {
           version: '2.0.0',
           environment: (() => {
             try {
-              const configService = this.container.resolve('IConfigService');
+              const configService = this.container.resolve('IConfigService') as any;
               return configService && typeof configService.getEnvironment === 'function' 
                 ? configService.getEnvironment() 
                 : 'unknown';

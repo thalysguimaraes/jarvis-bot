@@ -16,20 +16,18 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   private readonly NAMESPACE = 'voice_notes';
   private readonly VOICE_NOTE_PREFIX = 'voice_note:';
   private readonly DEFAULT_TTL = 86400 * 90; // 90 days
-  private readonly legacyStorage: boolean;
 
   constructor(
     private storage: IStorageService,
     private logger: ILogger,
-    legacyStorage?: boolean
+    _legacyStorage?: boolean
   ) {
-    this.legacyStorage = legacyStorage ?? false;
+    // Legacy storage parameter kept for API compatibility but not used
+    // The storage type is now auto-detected in the storage methods
   }
 
   // Support legacy storage mock shape used in tests (set/get/list without namespace)
-  private get isLegacy(): boolean {
-    return this.legacyStorage || (typeof (this.storage as any).set === 'function' && typeof (this.storage as any).put !== 'function');
-  }
+  // The legacy check is done inline in the storage methods
 
   private async storagePut(key: string, value: string, options?: { ttl?: number }): Promise<void> {
     if (typeof (this.storage as any).put === 'function') {

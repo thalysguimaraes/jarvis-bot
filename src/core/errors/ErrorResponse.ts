@@ -245,6 +245,7 @@ export class ErrorResponseBuilder {
       [ErrorCode.INTERNAL_ERROR]: ErrorCategory.INTERNAL,
       [ErrorCode.DATABASE_ERROR]: ErrorCategory.INTERNAL,
       [ErrorCode.CONFIGURATION_ERROR]: ErrorCategory.CONFIGURATION,
+      [ErrorCode.OPERATION_FAILED]: ErrorCategory.INTERNAL,
       
       [ErrorCode.REQUEST_TIMEOUT]: ErrorCategory.TIMEOUT,
       [ErrorCode.PROCESSING_TIMEOUT]: ErrorCategory.TIMEOUT,
@@ -283,6 +284,7 @@ export class ErrorResponseBuilder {
       [ErrorCode.INTERNAL_ERROR]: 500,
       [ErrorCode.DATABASE_ERROR]: 500,
       [ErrorCode.CONFIGURATION_ERROR]: 500,
+      [ErrorCode.OPERATION_FAILED]: 500,
       
       [ErrorCode.EXTERNAL_SERVICE_ERROR]: 502,
       [ErrorCode.SERVICE_UNAVAILABLE]: 503,

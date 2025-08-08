@@ -61,8 +61,7 @@ describe('ServiceFactoryV2', () => {
 
       // Should warn about missing AI service
       expect(consoleSpy).toHaveBeenCalledWith(
-        'AI service not available:', 
-        expect.any(Error)
+        'Service IAIService is not available'
       );
 
       consoleSpy.mockRestore();

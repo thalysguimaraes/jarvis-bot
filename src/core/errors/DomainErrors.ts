@@ -1,5 +1,5 @@
 import { AppError, ErrorContext } from '../logging/ErrorHandler';
-import { ErrorCode, ErrorCategory } from './ErrorResponse';
+import { ErrorCode } from './ErrorResponse';
 
 /**
  * Domain-specific error classes with retry strategies and recovery options
@@ -19,7 +19,7 @@ export class AudioProcessingError extends AppError {
       message,
       'AUDIO_PROCESSING_ERROR',
       true,
-      { ...context, module: 'AudioProcessing', stage },
+      { ...context, module: 'AudioProcessing' } as ErrorContext,
       stage === 'upload' ? false : true // Retry for all stages except upload
     );
     this.name = 'AudioProcessingError';
@@ -109,7 +109,7 @@ export class NoteSyncError extends AppError {
       message,
       'NOTE_SYNC_ERROR',
       true,
-      { ...context, module: 'NoteSync', destination },
+      { ...context, module: 'NoteSync' } as ErrorContext,
       true // Always retry sync errors
     );
     this.name = 'NoteSyncError';
@@ -154,7 +154,7 @@ export class PortfolioError extends AppError {
       message,
       'PORTFOLIO_ERROR',
       true,
-      { ...context, module: 'Portfolio', component },
+      { ...context, module: 'Portfolio' } as ErrorContext,
       component === 'api' // Retry API errors
     );
     this.name = 'PortfolioError';
@@ -253,7 +253,7 @@ export class MessagingError extends AppError {
       message,
       'MESSAGING_ERROR',
       true,
-      { ...context, module: 'Messaging', service, operation },
+      { ...context, module: 'Messaging', operation } as ErrorContext,
       operation === 'send' // Retry send operations
     );
     this.name = 'MessagingError';
@@ -302,7 +302,7 @@ export class StorageError extends AppError {
       message,
       'STORAGE_ERROR',
       true,
-      { ...context, module: 'Storage', operation, storage },
+      { ...context, module: 'Storage', operation } as ErrorContext,
       operation === 'read' // Retry read operations
     );
     this.name = 'StorageError';
@@ -350,7 +350,7 @@ export class ConfigurationError extends AppError {
       message,
       ErrorCode.CONFIGURATION_ERROR,
       false, // Configuration errors are not operational
-      { ...context, module: 'Configuration', configKey },
+      { ...context, module: 'Configuration' } as ErrorContext,
       false // Don't retry configuration errors
     );
     this.name = 'ConfigurationError';
@@ -403,7 +403,7 @@ export class ExponentialBackoffStrategy implements ErrorRecoveryStrategy {
     return error.retryable && attemptNumber < this.getMaxRetries(error);
   }
   
-  getRetryDelay(error: AppError, attemptNumber: number): number {
+  getRetryDelay(_error: AppError, attemptNumber: number): number {
     const delay = Math.min(
       this.baseDelayMs * Math.pow(2, attemptNumber - 1),
       this.maxDelayMs
@@ -457,11 +457,11 @@ export class CircuitBreakerStrategy implements ErrorRecoveryStrategy {
     return error.retryable && attemptNumber < 3;
   }
   
-  getRetryDelay(error: AppError, attemptNumber: number): number {
+  getRetryDelay(_error: AppError, attemptNumber: number): number {
     return 1000 * attemptNumber;
   }
   
-  getMaxRetries(error: AppError): number {
+  getMaxRetries(_error: AppError): number {
     return 3;
   }
   
@@ -497,9 +497,8 @@ export class DomainErrorHandler {
   
   async executeWithRetry<T>(
     operation: () => Promise<T>,
-    errorContext?: ErrorContext
+    _errorContext?: ErrorContext
   ): Promise<T> {
-    let lastError: AppError | undefined;
     let attempt = 0;
     
     while (true) {
@@ -511,8 +510,6 @@ export class DomainErrorHandler {
         if (!(error instanceof AppError)) {
           throw error; // Non-recoverable error
         }
-        
-        lastError = error;
         
         if (!this.strategy.shouldRetry(error, attempt)) {
           this.strategy.handleFinalFailure(error);

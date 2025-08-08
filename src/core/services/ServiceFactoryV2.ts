@@ -14,6 +14,10 @@ import { EventBus, IEventBus } from '../event-bus/EventBus';
 import { ConfigService, IConfigService } from '../config/ConfigService';
 import { createTypedEventBus } from '../event-bus/TypedEventBus';
 import { ConsoleLogger } from '../logging/ConsoleLogger';
+import { ResilienceManager } from './resilience/ResilienceManager';
+import { HealthCheckService } from './health/HealthCheckService';
+import { RetryHandler } from './resilience/RetryHandler';
+import { RateLimiterFactory } from './resilience/RateLimiter';
 
 /**
  * Enhanced service factory using decorator-based dependency injection
@@ -44,6 +48,9 @@ export class ServiceFactoryV2 {
     // Register infrastructure services
     this.registerInfrastructureServices();
     
+    // Register resilience services
+    this.registerResilienceServices();
+    
     // Register business services
     await this.registerBusinessServices();
     
@@ -54,6 +61,9 @@ export class ServiceFactoryV2 {
       console.error('Dependency graph validation failed:', error);
       // In production, you might want to throw here
     }
+    
+    // Initialize health monitoring
+    await this.initializeHealthMonitoring();
     
     // Perform health checks
     await this.performHealthChecks();
@@ -120,6 +130,52 @@ export class ServiceFactoryV2 {
     });
   }
   
+  private registerResilienceServices(): void {
+    // Register retry handler
+    this.container.register(RetryHandler, () => {
+      const logger = this.container.resolve<ILogger>('ILogger');
+      return new RetryHandler(logger);
+    });
+    
+    // Register rate limiter factory
+    this.container.register(RateLimiterFactory, () => {
+      const logger = this.container.resolve<ILogger>('ILogger');
+      return new RateLimiterFactory(logger);
+    });
+    
+    // Register resilience manager
+    this.container.register(ResilienceManager, () => {
+      const logger = this.container.resolve<ILogger>('ILogger');
+      const configService = this.container.resolve<IConfigService>('IConfigService');
+      const eventBus = this.container.resolve<EventBus>('IEventBus') as EventBus;
+      const rateLimiterFactory = this.container.resolve<RateLimiterFactory>(RateLimiterFactory);
+      const retryHandler = this.container.resolve<RetryHandler>(RetryHandler);
+      
+      return new ResilienceManager(
+        logger,
+        configService,
+        eventBus,
+        rateLimiterFactory,
+        retryHandler
+      );
+    });
+    
+    // Register health check service
+    this.container.register(HealthCheckService, () => {
+      const logger = this.container.resolve<ILogger>('ILogger');
+      const configService = this.container.resolve<IConfigService>('IConfigService');
+      const eventBus = this.container.resolve<EventBus>('IEventBus') as EventBus;
+      const resilienceManager = this.container.resolve<ResilienceManager>(ResilienceManager);
+      
+      return new HealthCheckService(
+        logger,
+        configService,
+        eventBus,
+        resilienceManager
+      );
+    });
+  }
+  
   private async registerBusinessServices(): Promise<void> {
     // Register messaging service
     try {
@@ -158,7 +214,7 @@ export class ServiceFactoryV2 {
         throw new Error('Z-API credentials are required for messaging service');
       }
       
-      return new ZApiMessagingService({
+      const service = new ZApiMessagingService({
         instanceId,
         instanceToken,
         securityToken: clientToken,
@@ -170,6 +226,11 @@ export class ServiceFactoryV2 {
           backoffMultiplier: 2,
         },
       });
+      
+      // Configure resilience for messaging service
+      this.configureServiceResilience('ZApiMessagingService', zapiConfig);
+      
+      return service;
     });
     
     // Also register the concrete class
@@ -211,7 +272,7 @@ export class ServiceFactoryV2 {
         throw new Error('OpenAI API key is required for AI service');
       }
       
-      return new OpenAIService({
+      const service = new OpenAIService({
         apiKey,
         defaultModel: model || 'gpt-4-turbo-preview',
         maxTokensPerRequest: maxTokens || 4096,
@@ -226,6 +287,11 @@ export class ServiceFactoryV2 {
           backoffMultiplier: 2,
         },
       });
+      
+      // Configure resilience for AI service
+      this.configureServiceResilience('OpenAIService', openaiConfig);
+      
+      return service;
     });
     
     // Also register the concrete class
@@ -295,8 +361,73 @@ export class ServiceFactoryV2 {
    * Clear all services (useful for testing)
    */
   clear(): void {
+    // Stop health monitoring before clearing
+    if (this.container.has(HealthCheckService)) {
+      const healthService = this.container.resolve<HealthCheckService>(HealthCheckService);
+      healthService.stopPeriodicHealthChecks();
+    }
+    
     this.container.clear();
     this.initialized = false;
+  }
+  
+  private configureServiceResilience(serviceName: string, config: any): void {
+    if (!this.container.has(ResilienceManager)) {
+      return;
+    }
+    
+    const resilienceManager = this.container.resolve<ResilienceManager>(ResilienceManager);
+    
+    resilienceManager.configureService(serviceName, {
+      serviceName,
+      enabled: config.resilienceEnabled !== false,
+      circuitBreaker: {
+        failureThreshold: config.circuitBreakerThreshold || 5,
+        resetTimeout: config.circuitBreakerResetMs || 30000,
+        timeout: config.timeoutMs || 10000,
+      },
+      rateLimiter: config.rateLimitPerMinute ? {
+        tokensPerInterval: config.rateLimitPerMinute,
+        interval: 60000,
+        maxBurstSize: Math.ceil(config.rateLimitPerMinute * 1.5),
+      } : undefined,
+      retry: {
+        maxAttempts: config.maxRetries || 3,
+        initialDelayMs: config.retryDelayMs || 1000,
+        maxDelayMs: config.maxRetryDelayMs || 10000,
+        backoffMultiplier: 2,
+      },
+    });
+  }
+  
+  private async initializeHealthMonitoring(): Promise<void> {
+    if (!this.container.has(HealthCheckService)) {
+      return;
+    }
+    
+    const healthService = this.container.resolve<HealthCheckService>(HealthCheckService);
+    const configService = this.container.resolve<IConfigService>('IConfigService');
+    
+    // Register services for health monitoring
+    const servicesToMonitor = [
+      { name: 'IMessagingService', critical: true },
+      { name: 'IAIService', critical: true },
+      { name: 'IStorageService', critical: false },
+    ];
+    
+    for (const { name } of servicesToMonitor) {
+      if (this.container.has(name)) {
+        const service = this.container.resolve<any>(name);
+        if (typeof service.healthCheck === 'function') {
+          healthService.registerService(name, service);
+        }
+      }
+    }
+    
+    // Start periodic health checks if enabled
+    if (configService.isFeatureEnabled('debugMode')) { // Use existing feature flag
+      healthService.startPeriodicHealthChecks();
+    }
   }
 }
 

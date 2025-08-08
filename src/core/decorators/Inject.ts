@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-import { getServiceMetadata } from './Injectable';
 
 export type InjectionToken<T = any> = 
   | (new (...args: any[]) => T)

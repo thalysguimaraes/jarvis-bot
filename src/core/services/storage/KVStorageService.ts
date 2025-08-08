@@ -7,6 +7,21 @@ import {
   Transaction,
 } from '../interfaces/IStorageService';
 
+// Cloudflare Workers KV types
+interface KVNamespace {
+  get(key: string, type?: 'text' | 'json' | 'arrayBuffer'): Promise<any>;
+  getWithMetadata(key: string, type?: 'text' | 'json' | 'arrayBuffer'): Promise<{ value: any; metadata: any }>;
+  put(key: string, value: string | ArrayBuffer, options?: KVNamespacePutOptions): Promise<void>;
+  delete(key: string): Promise<void>;
+  list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<{ keys: Array<{ name: string }>; list_complete: boolean; cursor?: string }>;
+}
+
+interface KVNamespacePutOptions {
+  expiration?: number;
+  expirationTtl?: number;
+  metadata?: any;
+}
+
 /**
  * KV Storage Service with namespace isolation
  * Provides virtual namespaces within a single KV namespace
@@ -22,15 +37,11 @@ export class KVStorageService implements IStorageService {
   private kv: KVNamespace;
   private namespacePrefix = 'ns';
   private separator = ':';
-  private config: KVStorageConfig;
   
-  constructor(kv: KVNamespace, config: KVStorageConfig = {}) {
+  constructor(kv: KVNamespace, _config: KVStorageConfig = {}) {
     this.kv = kv;
-    this.config = {
-      cacheEnabled: true,
-      cacheTTLSeconds: 300,
-      ...config
-    };
+    // Config could be used for caching in the future
+    // For now, we just accept it for API compatibility
   }
   
   async get<T = any>(namespace: string, key: string): Promise<T | null> {
@@ -150,7 +161,7 @@ export class KVStorageService implements IStorageService {
       
       // Delete all keys in parallel
       await Promise.all(
-        result.keys.map(key => this.kv.delete(key.name))
+        result.keys.map((key: any) => this.kv.delete(key.name))
       );
       
       deleted += result.keys.length;
@@ -170,7 +181,7 @@ export class KVStorageService implements IStorageService {
     const results = new Map<string, T>();
     
     // Batch get operations
-    const promises = keys.map(async key => {
+    const promises = keys.map(async (key: any) => {
       const value = await this.get<T>(namespace, key);
       if (value !== null) {
         results.set(key, value);
@@ -190,7 +201,7 @@ export class KVStorageService implements IStorageService {
   }
   
   async deleteMany(namespace: string, keys: string[]): Promise<void> {
-    const promises = keys.map(key => this.delete(namespace, key));
+    const promises = keys.map((key: any) => this.delete(namespace, key));
     await Promise.all(promises);
   }
   
@@ -247,7 +258,7 @@ export class KVStorageService implements IStorageService {
       });
       
       // Get all values
-      const promises = result.keys.map(async key => {
+      const promises = result.keys.map(async (key: any) => {
         const shortKey = this.extractKey(namespace, key.name);
         const value = await this.kv.get(key.name, 'json');
         if (value !== null) {
@@ -272,7 +283,7 @@ export class KVStorageService implements IStorageService {
     
     for (let i = 0; i < keys.length; i += batchSize) {
       const batch = keys.slice(i, i + batchSize);
-      const batchEntries = new Map(batch.map(key => [key, entries.get(key)!]));
+      const batchEntries = new Map(batch.map((key: any) => [key, entries.get(key)!]));
       await this.putMany(namespace, batchEntries);
     }
   }

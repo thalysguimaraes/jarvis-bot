@@ -11,7 +11,7 @@ export class ConsoleLogger implements ILogger {
   
   constructor(
     private level: LogLevel = LogLevel.INFO,
-    private defaultContext?: LogContext
+    defaultContext?: LogContext
   ) {
     if (defaultContext) {
       this.context = { ...defaultContext };

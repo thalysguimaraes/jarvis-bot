@@ -106,7 +106,7 @@ export class NotesRouter extends DomainRouter {
         body: z.object({
           content: z.string().min(1),
           timestamp: z.string().optional(),
-          metadata: z.record(z.any()).optional(),
+          metadata: z.record(z.string(), z.any()).optional(),
         }),
       },
       middleware: [this.validateApiKey.bind(this)],
@@ -158,7 +158,7 @@ export class NotesRouter extends DomainRouter {
     
     // Get expected API key from config
     const configService = context.container.tryResolve('IConfigService');
-    const expectedKey = configService?.get('services.obsidian.apiKey') || 
+    const expectedKey = (configService as any)?.get('services.obsidian.apiKey') || 
                        (context.container.tryResolve(ServiceTokens.ENV) as any)?.OBSIDIAN_API_KEY;
     
     if (!expectedKey || apiKey !== expectedKey) {
@@ -184,7 +184,7 @@ export class NotesRouter extends DomainRouter {
    * List notes for a user
    */
   private async listNotes(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -220,7 +220,7 @@ export class NotesRouter extends DomainRouter {
       
       // Filter by tags if provided
       if (tags) {
-        const tagList = tags.split(',').map(t => t.trim());
+        const tagList = tags.split(',').map((t: string) => t.trim());
         notes = notes.filter((note: any) => 
           note.tags && note.tags.some((tag: string) => tagList.includes(tag))
         );
@@ -258,7 +258,7 @@ export class NotesRouter extends DomainRouter {
    * Get a specific note
    */
   private async getNote(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -309,7 +309,7 @@ export class NotesRouter extends DomainRouter {
    * Create a new note
    */
   private async createNote(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -401,7 +401,7 @@ export class NotesRouter extends DomainRouter {
    * Update an existing note
    */
   private async updateNote(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -493,7 +493,7 @@ export class NotesRouter extends DomainRouter {
    * Delete a note
    */
   private async deleteNote(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -573,11 +573,11 @@ export class NotesRouter extends DomainRouter {
    * Sync notes to external service
    */
   private async syncNotes(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
-    const { noteIds, destination, force } = params.body;
+    const { noteIds, destination, force: _force } = params.body;
     const { userId = 'default' } = params.query || {};
     
     try {
@@ -652,7 +652,7 @@ export class NotesRouter extends DomainRouter {
    * Voice note sync from Obsidian plugin
    */
   private async voiceNoteSync(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -725,7 +725,7 @@ export class NotesRouter extends DomainRouter {
    * Get voice notes for Obsidian sync
    */
   private async getVoiceNotes(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -796,7 +796,7 @@ export class NotesRouter extends DomainRouter {
    * Search notes
    */
   private async searchNotes(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {

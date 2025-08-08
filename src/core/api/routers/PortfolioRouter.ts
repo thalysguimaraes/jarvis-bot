@@ -1,6 +1,6 @@
 import { DomainRouter, RouteContext } from './DomainRouter';
 import { z } from 'zod';
-import { EventFactory, PortfolioEventType } from '../../event-bus/TypedEvents';
+import { EventFactory, PortfolioEventType, FundEventType } from '../../event-bus/TypedEvents';
 import { validateEvent } from '../../event-bus/EventSchemas';
 import { GenericEvent } from '../../event-bus/EventTypes';
 import { ServiceTokens } from '../../services/ServiceRegistry';
@@ -115,7 +115,7 @@ export class PortfolioRouter extends DomainRouter {
    * Trigger portfolio report generation
    */
   private async triggerPortfolioReport(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -171,7 +171,7 @@ export class PortfolioRouter extends DomainRouter {
    * Get portfolio report for user
    */
   private async getPortfolioReport(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -214,7 +214,7 @@ export class PortfolioRouter extends DomainRouter {
    * Send portfolio report directly via WhatsApp
    */
   private async sendPortfolioDirectly(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -255,8 +255,8 @@ export class PortfolioRouter extends DomainRouter {
    * Run portfolio system diagnostics
    */
   private async diagnosePortfolio(
-    request: Request,
-    params: Record<string, any>,
+    _request: Request,
+    _params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
     const diagnostics: Record<string, any> = {
@@ -315,7 +315,7 @@ export class PortfolioRouter extends DomainRouter {
    * Get user fund positions
    */
   private async getUserFunds(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -451,7 +451,7 @@ export class PortfolioRouter extends DomainRouter {
    * Get portfolio configuration
    */
   private async getPortfolioConfig(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -498,7 +498,7 @@ export class PortfolioRouter extends DomainRouter {
    * Update portfolio configuration
    */
   private async updatePortfolioConfig(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {

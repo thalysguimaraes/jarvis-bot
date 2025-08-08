@@ -190,7 +190,7 @@ export class ServiceContainer {
   private scanAndRegister(): void {
     const allServices = getAllServices();
     
-    allServices.forEach((metadata, ClassType) => {
+    allServices.forEach((_metadata, ClassType) => {
       if (!this.services.has(ClassType)) {
         this.registerClass(ClassType);
       }

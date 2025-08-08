@@ -460,12 +460,45 @@ export class EventFactory {
     };
   }
 
+  static noteUpdated(
+    payload: NoteUpdatedPayload,
+    metadata?: Partial<EventMetadata>
+  ): NoteEvent {
+    return {
+      type: NoteEventType.UPDATED,
+      payload,
+      metadata,
+    };
+  }
+
+  static noteDeleted(
+    payload: NoteDeletedPayload,
+    metadata?: Partial<EventMetadata>
+  ): NoteEvent {
+    return {
+      type: NoteEventType.DELETED,
+      payload,
+      metadata,
+    };
+  }
+
   static portfolioUpdated(
     payload: PortfolioUpdatedPayload,
     metadata?: Partial<EventMetadata>
   ): PortfolioEvent {
     return {
       type: PortfolioEventType.UPDATED,
+      payload,
+      metadata,
+    };
+  }
+
+  static portfolioReportRequested(
+    payload: PortfolioReportRequestedPayload,
+    metadata?: Partial<EventMetadata>
+  ): PortfolioEvent {
+    return {
+      type: PortfolioEventType.REPORT_REQUESTED,
       payload,
       metadata,
     };

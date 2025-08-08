@@ -160,7 +160,7 @@ export class ValidationMiddleware {
    * Create middleware for content type validation
    */
   validateContentType(allowedTypes: string[]): MiddlewareHandler {
-    return async (request, params, context, next) => {
+    return async (request, _params, context, next) => {
       if (request.method === 'GET' || request.method === 'HEAD') {
         return next();
       }
@@ -195,7 +195,7 @@ export class ValidationMiddleware {
    * Create middleware for request size validation
    */
   validateRequestSize(maxSizeBytes: number): MiddlewareHandler {
-    return async (request, params, context, next) => {
+    return async (request, _params, context, next) => {
       const contentLength = request.headers.get('Content-Length');
       
       if (contentLength) {

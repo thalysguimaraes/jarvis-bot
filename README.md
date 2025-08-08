@@ -39,9 +39,9 @@ Most AI assistants are expensive or limited. JarvisBot offers:
 
 ## 🏗️ Architecture
 
-### Modular Event-Driven Design
+### Enterprise-Grade Architecture (v3)
 
-JarvisBot v2 features a fully modular, event-driven architecture:
+JarvisBot v3 features enterprise-grade architecture with resilience patterns, performance optimizations, and advanced monitoring:
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
@@ -70,36 +70,63 @@ JarvisBot v2 features a fully modular, event-driven architecture:
                                                   └─────────────────┘
 ```
 
-### Key Components
+### Key Architectural Features
 
+#### 🛡️ Resilience Patterns
+- **Circuit Breakers**: Prevent cascading failures with automatic recovery
+- **Retry Logic**: Exponential backoff with jitter for transient failures
+- **Rate Limiting**: Token bucket algorithm to respect API limits
+- **Health Checks**: Automated service monitoring and recovery
+
+#### ⚡ Performance Optimizations
+- **Request Caching**: In-memory cache with TTL and LRU eviction
+- **Connection Pooling**: HTTP keep-alive connections for API efficiency
+- **KV Storage Optimization**: Batch operations, compression, and caching
+- **Concurrent Event Processing**: Parallel event handling with backpressure
+
+#### 🎯 Advanced Features
+- **Feature Flags**: Runtime toggles with gradual rollout and A/B testing
+- **Dependency Injection**: Decorator-based DI with automatic service resolution
+- **Type-Safe Events**: Discriminated unions with Zod validation
+- **Domain Error Handling**: Recovery strategies and retry policies per domain
+
+#### 📊 Core Components
 - **CompositeApiRouter**: Modular routing with domain-specific routers
-- **Middleware Stack**: Authentication, validation, rate limiting, error handling
-- **TypedEventBus**: Type-safe event system with Zod validation
-- **Domain Modules**: Isolated business logic with clear boundaries
-- **Service Factory**: Dependency injection and service lifecycle management
+- **Middleware Stack**: Auth, validation, rate limiting, error handling
+- **TypedEventBus**: Type-safe concurrent event system
+- **ServiceFactoryV2**: Enhanced DI with resilience patterns
+- **ResilienceManager**: Centralized resilience configuration
 
 ## 📁 Project Structure
 
 ```
 src/
-├── core/                  # Core infrastructure
-│   ├── api/              # API routing and middleware
-│   │   ├── routers/      # Domain-specific routers
-│   │   └── middleware/   # Request processing middleware
-│   ├── config/           # Configuration management
-│   ├── errors/           # Error handling system
-│   ├── event-bus/        # Event-driven communication
-│   ├── logging/          # Logging infrastructure
-│   ├── modules/          # Module management
-│   ├── scheduler/        # Task scheduling
-│   └── services/         # Core services (messaging, storage, AI)
-├── domains/              # Business domain modules
-│   ├── audio-processing/ # Voice message handling
-│   ├── fund-management/  # Investment fund tracking
-│   ├── notes/           # Note-taking and Obsidian sync
-│   └── portfolio/       # Stock portfolio management
-├── legacy/              # Old code for reference (not used)
-└── index.ts            # Main entry point
+├── core/                     # Core infrastructure
+│   ├── api/                 # API routing and middleware
+│   │   ├── routers/         # Domain-specific routers
+│   │   └── middleware/      # Request processing middleware
+│   ├── cache/               # Caching system with TTL
+│   ├── config/              # Configuration management
+│   ├── decorators/          # TypeScript decorators for DI
+│   ├── errors/              # Error handling system
+│   ├── event-bus/           # Event-driven communication
+│   ├── features/            # Feature flags system
+│   ├── http/                # Connection pooling
+│   ├── logging/             # Logging infrastructure
+│   ├── modules/             # Module management
+│   ├── scheduler/           # Task scheduling
+│   └── services/            # Core services
+│       ├── ai/              # AI service integration
+│       ├── health/          # Health check service
+│       ├── messaging/       # WhatsApp messaging
+│       ├── resilience/      # Circuit breakers, retry logic
+│       └── storage/         # Optimized KV storage
+├── domains/                  # Business domain modules
+│   ├── audio-processing/    # Voice message handling
+│   ├── fund-management/     # Investment fund tracking
+│   ├── notes/              # Note-taking and Obsidian sync
+│   └── portfolio/          # Stock portfolio management
+└── index.ts                 # Main entry point
 ```
 
 ## 🚀 Quick Start

@@ -48,6 +48,10 @@ CLAUDE.md
 FUND_INTEGRATION.md
 NOTES.md
 TODO.md
+MIGRATION_CONTEXT.md
+architecture-plan.md
+DEPLOYMENT.md
+OBSIDIAN-PLUGIN-API.md
 *.zip
 
 # Development scripts with personal data
@@ -63,3 +67,7 @@ real-*.js
 *.bak
 wrangler.toml.backup.dev.vars.complete
 .dev.vars.complete
+
+# Test and legacy directories
+dist-test/
+src/legacy/

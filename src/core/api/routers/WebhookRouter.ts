@@ -241,9 +241,9 @@ export class WebhookRouter extends DomainRouter {
    * Get webhook configuration status
    */
   private async getWebhookStatus(
-    request: Request,
-    params: Record<string, any>,
-    context: RouteContext
+    _request: Request,
+    _params: Record<string, any>,
+    _context: RouteContext
   ): Promise<Response> {
     const status = {
       active: true,
@@ -267,7 +267,7 @@ export class WebhookRouter extends DomainRouter {
    * Test webhook with sample data
    */
   private async testWebhook(
-    request: Request,
+    _request: Request,
     params: Record<string, any>,
     context: RouteContext
   ): Promise<Response> {
@@ -283,7 +283,8 @@ export class WebhookRouter extends DomainRouter {
       switch (type) {
         case 'audio':
           // Create a test audio event
-          const testAudioEvent = EventFactory.audioReceived({
+          // Test audio event creation (event not used in test mode)
+          EventFactory.audioReceived({
             userId,
             audioData: 'test-audio-data-base64',
             mimeType: 'audio/ogg',

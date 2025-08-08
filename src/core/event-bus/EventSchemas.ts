@@ -73,7 +73,7 @@ export const AudioClassifiedSchema = z.object({
     transcription: z.string().min(1),
     classification: z.enum(['task', 'note', 'fund', 'question', 'other']),
     confidence: z.number().min(0).max(1),
-    metadata: z.record(z.any()).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
   }),
   metadata: EventMetadataSchema.optional(),
 });
@@ -304,7 +304,7 @@ export const SystemErrorSchema = z.object({
     stack: z.string().optional(),
     module: z.string().min(1),
     severity: z.enum(['low', 'medium', 'high', 'critical']),
-    context: z.record(z.any()).optional(),
+    context: z.record(z.string(), z.any()).optional(),
   }),
   metadata: EventMetadataSchema.optional(),
 });
@@ -315,7 +315,7 @@ export const SystemWarningSchema = z.object({
     message: z.string().min(1),
     module: z.string().min(1),
     code: z.string().optional(),
-    context: z.record(z.any()).optional(),
+    context: z.record(z.string(), z.any()).optional(),
   }),
   metadata: EventMetadataSchema.optional(),
 });
@@ -326,7 +326,7 @@ export const HealthCheckSchema = z.object({
     service: z.string().min(1),
     healthy: z.boolean(),
     latency: z.number().nonnegative().optional(),
-    details: z.record(z.any()).optional(),
+    details: z.record(z.string(), z.any()).optional(),
   }),
   metadata: EventMetadataSchema.optional(),
 });
