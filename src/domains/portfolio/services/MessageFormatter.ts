@@ -1,4 +1,5 @@
 import { PortfolioCalculation } from '../types';
+import { formatBrazilianDate, formatBrazilianTime, formatBrazilianCurrency } from '../../../core/utils/timezone';
 
 export interface IMessageFormatter {
   formatPortfolioMessage(calculation: PortfolioCalculation, isInstant?: boolean): string;
@@ -6,18 +7,18 @@ export interface IMessageFormatter {
 
 export class PortfolioMessageFormatter implements IMessageFormatter {
   formatPortfolioMessage(calculation: PortfolioCalculation, isInstant: boolean = false): string {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = formatBrazilianDate();
+    const timeStr = formatBrazilianTime();
     
     // For instant reports, use a more focused format
     if (isInstant) {
-      return this.formatInstantReport(calculation, now, timeStr);
+      return this.formatInstantReport(calculation, dateStr, timeStr);
     }
     
     // Regular scheduled report format - also focus on daily performance
     const lines: string[] = [
       '📊 *RELATÓRIO DIÁRIO DO PORTFÓLIO*',
-      `📅 ${now.toLocaleDateString('pt-BR')}`,
+      `📅 ${dateStr}`,
       '',
     ];
 
@@ -109,7 +110,7 @@ export class PortfolioMessageFormatter implements IMessageFormatter {
   }
 
   private formatNumber(value: number): string {
-    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return formatBrazilianCurrency(value);
   }
 
   private getEmoji(value: number): string {
@@ -118,10 +119,10 @@ export class PortfolioMessageFormatter implements IMessageFormatter {
     return '⚪';
   }
 
-  private formatInstantReport(calculation: PortfolioCalculation, now: Date, timeStr: string): string {
+  private formatInstantReport(calculation: PortfolioCalculation, dateStr: string, timeStr: string): string {
     const lines: string[] = [
       '📊 *PORTFÓLIO AGORA*',
-      `📅 ${now.toLocaleDateString('pt-BR')} às ${timeStr}`,
+      `📅 ${dateStr} às ${timeStr}`,
       '',
     ];
 

@@ -9,6 +9,7 @@ import { ILogger } from './core/logging/Logger';
 import { SchedulerManager, getDefaultScheduledTasks } from './core/scheduler/SchedulerManager';
 import { CompositeApiRouter } from './core/api/CompositeApiRouter';
 import { createCorsResponse, handleCorsPreflight, addCorsHeaders } from './core/utils/cors';
+import { formatBrazilianDate, formatBrazilianTime, formatBrazilianDateTime, formatBrazilianCurrency } from './core/utils/timezone';
 
 // Import domain modules
 import { AudioProcessingModule } from './domains/audio-processing/AudioProcessingModule';
@@ -300,11 +301,11 @@ export default {
         // Format message
         const lines = [
           '📊 *RELATÓRIO DO PORTFÓLIO*',
-          `📅 ${new Date().toLocaleDateString('pt-BR')} - ${new Date().toLocaleTimeString('pt-BR')}`,
+          `📅 ${formatBrazilianDateTime()}`,
           '',
           '💼 *RESUMO GERAL*',
-          `💰 Valor Total: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          `📈 Resultado: R$ ${totalPnL.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${totalPnLPercent >= 0 ? '+' : ''}${totalPnLPercent.toFixed(2)}%)`,
+          `💰 Valor Total: R$ ${formatBrazilianCurrency(totalValue)}`,
+          `📈 Resultado: R$ ${formatBrazilianCurrency(totalPnL)} (${totalPnLPercent >= 0 ? '+' : ''}${totalPnLPercent.toFixed(2)}%)`,
           '',
           '📋 *POSIÇÕES*'
         ];
@@ -314,8 +315,8 @@ export default {
           lines.push(
             `${emoji} *${holding.ticker}*`,
             `   ${holding.shares} ações @ R$ ${holding.currentPrice.toFixed(2)}`,
-            `   Valor: R$ ${holding.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            `   P/L: R$ ${holding.pnl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${holding.pnlPercent >= 0 ? '+' : ''}${holding.pnlPercent.toFixed(2)}%)`,
+            `   Valor: R$ ${formatBrazilianCurrency(holding.value)}`,
+            `   P/L: R$ ${formatBrazilianCurrency(holding.pnl)} (${holding.pnlPercent >= 0 ? '+' : ''}${holding.pnlPercent.toFixed(2)}%)`,
             ''
           );
         }
@@ -436,7 +437,7 @@ export default {
         
         // Step 4: Test message formatting
         try {
-          const testMessage = `📊 *TESTE DIAGNÓSTICO*\n📅 ${new Date().toLocaleDateString('pt-BR')}\n\nTeste de envio de mensagem para: ${env.PORTFOLIO_WHATSAPP_NUMBER}`;
+          const testMessage = `📊 *TESTE DIAGNÓSTICO*\n📅 ${formatBrazilianDate()}\n\nTeste de envio de mensagem para: ${env.PORTFOLIO_WHATSAPP_NUMBER}`;
           diagnostics.steps.messageFormatting = {
             success: true,
             messageLength: testMessage.length,
@@ -455,7 +456,7 @@ export default {
             const zApiUrl = `https://api.z-api.io/instances/${env.Z_API_INSTANCE_ID}/token/${env.Z_API_INSTANCE_TOKEN}/send-text`;
             const zApiPayload = {
               phone: env.PORTFOLIO_WHATSAPP_NUMBER,
-              message: `🔧 *DIAGNÓSTICO DO PORTFOLIO*\n\n✅ Teste de envio realizado em ${new Date().toLocaleTimeString('pt-BR')}\n\nSe você recebeu esta mensagem, o sistema de envio está funcionando corretamente.`
+              message: `🔧 *DIAGNÓSTICO DO PORTFOLIO*\n\n✅ Teste de envio realizado em ${formatBrazilianTime()}\n\nSe você recebeu esta mensagem, o sistema de envio está funcionando corretamente.`
             };
             
             const zApiResponse = await fetch(zApiUrl, {

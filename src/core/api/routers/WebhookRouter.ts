@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AudioReceivedEvent, GenericEvent } from '../../event-bus/EventTypes';
 import { EventFactory, AudioEventType } from '../../event-bus/TypedEvents';
 import { validateEvent } from '../../event-bus/EventSchemas';
+import { getSaoPauloISOString } from '../../utils/timezone';
 
 /**
  * Router for handling webhook requests from Z-API and other external services
@@ -206,7 +207,7 @@ export class WebhookRouter extends DomainRouter {
           userId,
           phoneNumber: userId,
           text,
-          requestedAt: new Date().toISOString(),
+          requestedAt: getSaoPauloISOString(),
         }, {
           correlationId: context.correlationId,
           source: 'WebhookRouter',

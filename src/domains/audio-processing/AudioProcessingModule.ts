@@ -5,6 +5,7 @@ import { IAIService } from '@/core/services/interfaces/IAIService';
 import { ILogger } from '@/core/logging/Logger';
 import { IErrorHandler } from '@/core/logging/ErrorHandler';
 import { ServiceTokens } from '@/core/services/ServiceRegistry';
+import { formatBrazilianDate } from '@/core/utils/timezone';
 import {
   AudioReceivedEvent,
   AudioTranscribedEvent,
@@ -246,7 +247,7 @@ export class AudioProcessingModule extends BaseDomainModule {
           // Send success confirmation
           await this.sendMessage(
             userId,
-            `✅ Tarefa criada no Todoist: "${taskData.title}"\n${taskData.dueDate ? `📅 Data: ${taskData.dueDate.toLocaleDateString('pt-BR')}` : ''}`
+            `✅ Tarefa criada no Todoist: "${taskData.title}"\n${taskData.dueDate ? `📅 Data: ${formatBrazilianDate(taskData.dueDate)}` : ''}`
           );
           
           // Publish task created event
@@ -285,7 +286,7 @@ export class AudioProcessingModule extends BaseDomainModule {
         // Send confirmation (indicating it's stored locally)
         await this.sendMessage(
           userId,
-          `📝 Tarefa salva localmente (Todoist não configurado): "${taskData.title}"\n${taskData.dueDate ? `📅 Data: ${taskData.dueDate.toLocaleDateString('pt-BR')}` : ''}`
+          `📝 Tarefa salva localmente (Todoist não configurado): "${taskData.title}"\n${taskData.dueDate ? `📅 Data: ${formatBrazilianDate(taskData.dueDate)}` : ''}`
         );
       }
     } catch (error) {
