@@ -57,13 +57,6 @@ export class ClassificationHandler {
       'observação', 'importante', 'guardar', 'salvar',
     ];
     
-    // Fund keywords
-    const fundKeywords = [
-      'fundo', 'investimento', 'cnpj', 'cota', 'cotas',
-      'comprar fundo', 'vender fundo', 'saldo', 'rentabilidade',
-      'carteira', 'patrimônio', 'rendimento',
-    ];
-    
     // Question keywords
     const questionKeywords = [
       'o que', 'qual', 'quando', 'onde', 'como', 'por que',
@@ -73,14 +66,12 @@ export class ClassificationHandler {
     // Count matches
     const taskMatches = taskKeywords.filter(kw => lowerText.includes(kw)).length;
     const noteMatches = noteKeywords.filter(kw => lowerText.includes(kw)).length;
-    const fundMatches = fundKeywords.filter(kw => lowerText.includes(kw)).length;
     const questionMatches = questionKeywords.filter(kw => lowerText.includes(kw)).length;
     
     // Determine category based on highest match count
     const scores = [
       { category: 'task', count: taskMatches },
       { category: 'note', count: noteMatches },
-      { category: 'fund', count: fundMatches },
       { category: 'question', count: questionMatches },
     ];
     

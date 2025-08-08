@@ -11,6 +11,17 @@ export interface StockData {
   changePercent: number;
 }
 
+export interface FundPosition {
+  cnpj: string;
+  name: string;
+  quotas: number;
+  avgPrice: number;
+  currentPrice?: number;
+  currentValue?: number;
+  performance?: number;
+  performancePercent?: number;
+}
+
 export interface PortfolioCalculation {
   currentValue: number;
   previousCloseValue: number;
@@ -25,7 +36,11 @@ export interface PortfolioCalculation {
     position: number;
     dailyChange: number;
     dailyChangePercent: number;
-  }>
+  }>;
+  funds?: Array<FundPosition>;
+  fundsValue?: number;
+  fundsTotalCost?: number;
+  fundsPnL?: number;
 }
 
 export interface PortfolioConfig {

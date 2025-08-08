@@ -1,6 +1,6 @@
 import { DomainRouter, RouteContext } from './DomainRouter';
 import { z } from 'zod';
-import { AudioReceivedEvent } from '../../event-bus/EventTypes';
+import { AudioReceivedEvent, GenericEvent } from '../../event-bus/EventTypes';
 import { EventFactory, AudioEventType } from '../../event-bus/TypedEvents';
 import { validateEvent } from '../../event-bus/EventSchemas';
 
@@ -112,15 +112,9 @@ export class WebhookRouter extends DomainRouter {
       return this.processAudioMessage(payload, context);
     }
     
-    // Process text messages (future implementation)
+    // Process text messages
     if (this.isTextMessage(payload)) {
-      this.logger.debug('Text message received (not yet implemented)', {
-        correlationId: context.correlationId,
-      });
-      return this.successResponse({
-        processed: false,
-        reason: 'Text processing not implemented',
-      });
+      return this.processTextMessage(payload, context);
     }
     
     // Unknown message type
@@ -150,8 +144,96 @@ export class WebhookRouter extends DomainRouter {
   private isTextMessage(payload: any): boolean {
     return (
       payload.type === 'text' ||
-      (payload.event === 'message.received' && payload.data?.message?.type === 'text')
+      (payload.event === 'message.received' && payload.data?.message?.type === 'text') ||
+      (payload.data?.message?.text?.body)
     );
+  }
+  
+  /**
+   * Process text message
+   */
+  private async processTextMessage(
+    payload: any,
+    context: RouteContext
+  ): Promise<Response> {
+    try {
+      // Extract text content
+      const text = payload.text || 
+                   payload.data?.message?.text?.body || 
+                   payload.data?.message?.body ||
+                   '';
+      
+      // Extract user identifier
+      const userId = payload.from || 
+                    payload.phone || 
+                    payload.senderNumber ||
+                    payload.data?.message?.from ||
+                    'unknown';
+      
+      this.logger.info('Processing text message', {
+        correlationId: context.correlationId,
+        userId,
+        text: text.substring(0, 100), // Log first 100 chars
+      });
+      
+      // Check for portfolio commands
+      const lowerText = text.toLowerCase().trim();
+      const portfolioKeywords = [
+        'portfolio', 'portfólio', 'carteira', 
+        'meu portfolio', 'meu portfólio', 'minha carteira',
+        'posição', 'posições', 'saldo', 'patrimônio',
+        'investimentos', 'ações', 'fundos'
+      ];
+      
+      const isPortfolioCommand = portfolioKeywords.some(keyword => 
+        lowerText.includes(keyword)
+      );
+      
+      if (isPortfolioCommand) {
+        // Publish portfolio instant report event
+        await context.eventBus.publish(new GenericEvent('portfolio.instant_report', {
+          userId,
+          phoneNumber: userId,
+          text,
+          requestedAt: new Date().toISOString(),
+        }, {
+          correlationId: context.correlationId,
+          source: 'WebhookRouter',
+        }));
+        
+        this.logger.info('Portfolio command detected and event published', {
+          correlationId: context.correlationId,
+          userId,
+        });
+        
+        return this.successResponse({
+          processed: true,
+          correlationId: context.correlationId,
+          message: 'Portfolio report request queued',
+        });
+      }
+      
+      // No matching command
+      this.logger.debug('No command detected in text message', {
+        correlationId: context.correlationId,
+        userId,
+      });
+      
+      return this.successResponse({
+        processed: false,
+        reason: 'No recognized command',
+      });
+      
+    } catch (error) {
+      this.logger.error('Failed to process text message', error as Error, {
+        correlationId: context.correlationId,
+      });
+      
+      return this.errorResponse(
+        error instanceof Error ? error.message : 'Text processing failed',
+        500
+      );
+    }
   }
   
   /**

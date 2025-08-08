@@ -76,6 +76,12 @@ export class PortfolioModule extends BaseDomainModule {
       'scheduler.daily_portfolio_report',
       this.handleDailyReport.bind(this)
     );
+    
+    // Subscribe to instant portfolio requests (from text messages)
+    this.subscribe<DomainEvent>(
+      'portfolio.instant_report',
+      this.handleInstantReport.bind(this)
+    );
   }
 
   private async handleReportRequest(event: DomainEvent): Promise<void> {
@@ -144,7 +150,7 @@ export class PortfolioModule extends BaseDomainModule {
     }
   }
 
-  private async sendPortfolioReport(userId: string, reportType: string): Promise<void> {
+  private async sendPortfolioReport(userId: string, reportType: string, phoneNumber?: string): Promise<void> {
     try {
       // Load portfolio data
       const portfolioData = await this.loadPortfolioData(userId);
@@ -152,12 +158,28 @@ export class PortfolioModule extends BaseDomainModule {
       // Calculate portfolio value
       const calculation = await this.calculator.calculatePortfolioValue(portfolioData);
       
+      // Load and integrate fund data
+      const fundCalculation = await this.loadAndCalculateFunds(userId);
+      if (fundCalculation) {
+        calculation.funds = fundCalculation.positions;
+        calculation.fundsValue = fundCalculation.currentValue;
+        calculation.fundsTotalCost = fundCalculation.totalInvested;
+        calculation.fundsPnL = fundCalculation.totalPerformance;
+        
+        // Update totals to include funds
+        calculation.currentValue += fundCalculation.currentValue;
+        calculation.totalCost += fundCalculation.totalInvested;
+        calculation.totalPnL += fundCalculation.totalPerformance;
+        calculation.totalPercentageChange = (calculation.totalPnL / calculation.totalCost) * 100;
+      }
+      
       // Format message
-      const message = this.messageFormatter.formatPortfolioMessage(calculation);
+      const message = this.messageFormatter.formatPortfolioMessage(calculation, reportType === 'on-demand');
       
       // Send WhatsApp message
+      const recipient = phoneNumber || this.config.whatsappNumber;
       await this.messagingService.sendMessage({
-        recipient: this.config.whatsappNumber,
+        recipient,
         content: message,
         type: MessageType.TEXT
       });
@@ -165,7 +187,7 @@ export class PortfolioModule extends BaseDomainModule {
       // Publish success event
       await this.publish(new PortfolioReportSentEvent({
         userId,
-        recipient: this.config.whatsappNumber,
+        recipient,
         reportType: reportType as 'daily' | 'weekly' | 'monthly',
         success: true
       }));
@@ -173,14 +195,15 @@ export class PortfolioModule extends BaseDomainModule {
       this.logger.info('Portfolio report sent successfully', { 
         userId, 
         reportType,
-        value: calculation.currentValue 
+        value: calculation.currentValue,
+        hasFunds: !!calculation.funds
       });
       
     } catch (error) {
       // Publish failure event
       await this.publish(new PortfolioReportSentEvent({
         userId,
-        recipient: this.config.whatsappNumber,
+        recipient: phoneNumber || this.config.whatsappNumber,
         reportType: reportType as 'daily' | 'weekly' | 'monthly',
         success: false
       }));
@@ -249,6 +272,50 @@ export class PortfolioModule extends BaseDomainModule {
     this.logger.info('PortfolioModule disposed');
   }
 
+  private async handleInstantReport(event: DomainEvent): Promise<void> {
+    const { userId, phoneNumber } = event.payload as { userId: string; phoneNumber: string };
+    
+    try {
+      this.logger.info('Processing instant portfolio report request', { userId, phoneNumber });
+      
+      // Generate and send the report immediately
+      await this.sendPortfolioReport(userId, 'on-demand', phoneNumber);
+      
+    } catch (error) {
+      this.logger.error('Failed to send instant portfolio report', error as Error);
+      
+      // Send error message to user
+      try {
+        await this.messagingService.sendMessage({
+          recipient: phoneNumber,
+          content: '❌ Desculpe, não foi possível gerar o relatório da carteira no momento. Tente novamente mais tarde.',
+          type: MessageType.TEXT
+        });
+      } catch (msgError) {
+        this.logger.error('Failed to send error message', msgError as Error);
+      }
+      
+      await this.publishError(error as Error, 'medium');
+    }
+  }
+  
+  private async loadAndCalculateFunds(userId: string): Promise<any> {
+    try {
+      // Try to get fund module if available
+      const modules = this.container.resolve<any>('modules');
+      const fundModule = modules?.get('fund-management');
+      
+      if (fundModule && typeof fundModule.calculatePortfolio === 'function') {
+        const fundCalculation = await fundModule.calculatePortfolio(userId);
+        return fundCalculation;
+      }
+    } catch (error) {
+      this.logger.debug('Fund module not available or calculation failed', { error });
+    }
+    
+    return null;
+  }
+  
   protected async onHealthCheck(): Promise<Partial<ModuleHealth>> {
     try {
       // Check if we can reach the Brapi API
