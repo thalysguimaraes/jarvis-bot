@@ -53,50 +53,53 @@ const createAuthRequest = (
 };
 
 // Sample voice notes for testing
-const createSampleNotes = (): VoiceNote[] => [
-  {
-    id: 'vn_1234567890_abc123',
-    transcription: 'Test note 1',
-    timestamp: new Date('2025-01-15T10:00:00Z'),
-    phone: '5511999999999',
-    processed: false,
-    syncedToObsidian: false,
-    metadata: {
-      classification: 'note',
-      confidence: 0.95,
-      audioUrl: 'https://example.com/audio1.opus',
-      duration: 10,
+const createSampleNotes = (): VoiceNote[] => {
+  const now = new Date();
+  return [
+    {
+      id: 'vn_1234567890_abc123',
+      transcription: 'Test note 1',
+      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
+      phone: '5511999999999',
+      processed: false,
+      syncedToObsidian: false,
+      metadata: {
+        classification: 'note',
+        confidence: 0.95,
+        audioUrl: 'https://example.com/audio1.opus',
+        duration: 10,
+      },
     },
-  },
-  {
-    id: 'vn_1234567891_def456',
-    transcription: 'Test note 2',
-    timestamp: new Date('2025-01-15T11:00:00Z'),
-    phone: '5511999999999',
-    processed: true,
-    syncedToObsidian: false,
-    metadata: {
-      classification: 'task',
-      confidence: 0.92,
-      audioUrl: 'https://example.com/audio2.opus',
-      duration: 15,
+    {
+      id: 'vn_1234567891_def456',
+      transcription: 'Test note 2',
+      timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+      phone: '5511999999999',
+      processed: true,
+      syncedToObsidian: false,
+      metadata: {
+        classification: 'task',
+        confidence: 0.92,
+        audioUrl: 'https://example.com/audio2.opus',
+        duration: 15,
+      },
     },
-  },
-  {
-    id: 'vn_1234567892_ghi789',
-    transcription: 'Test note 3',
-    timestamp: new Date('2025-01-15T12:00:00Z'),
-    phone: '5511999999999',
-    processed: true,
-    syncedToObsidian: true,
-    metadata: {
-      classification: 'note',
-      confidence: 0.88,
-      audioUrl: 'https://example.com/audio3.opus',
-      duration: 20,
+    {
+      id: 'vn_1234567892_ghi789',
+      transcription: 'Test note 3',
+      timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
+      phone: '5511999999999',
+      processed: true,
+      syncedToObsidian: true,
+      metadata: {
+        classification: 'note',
+        confidence: 0.88,
+        audioUrl: 'https://example.com/audio3.opus',
+        duration: 20,
+      },
     },
-  },
-];
+  ];
+};
 
 describe('Voice Sync API', () => {
   let apiRouter: ApiRouter;

@@ -5,10 +5,13 @@ import { OpenAIService } from './ai/OpenAIService';
 import { IMessagingService } from './interfaces/IMessagingService';
 import { IStorageService } from './interfaces/IStorageService';
 import { IAIService } from './interfaces/IAIService';
-import { ValidatedEnv, hasRuntimeEnv, getRuntimeEnv } from '../config/env-schema';
+import { ValidatedEnv } from '../config/env-schema';
 import { Logger, ILogger } from '../logging/Logger';
 import { ErrorHandler, IErrorHandler } from '../logging/ErrorHandler';
 import { EventBus, IEventBus } from '../event-bus/EventBus';
+import { ConfigService, IConfigService } from '../config/ConfigService';
+import { createTypedEventBus } from '../event-bus/TypedEventBus';
+import { ITypedEventBus } from '../event-bus/TypedEvents';
 
 /**
  * Factory for creating and configuring services
@@ -16,18 +19,21 @@ import { EventBus, IEventBus } from '../event-bus/EventBus';
 export class ServiceFactory {
   private registry: ServiceRegistry;
   private container: DependencyContainer;
+  private configService: IConfigService;
   
   constructor(private env: ValidatedEnv) {
     this.registry = new ServiceRegistry();
     this.container = new DependencyContainer(this.registry);
+    this.configService = new ConfigService(env);
   }
   
   /**
    * Initialize all core services
    */
   async initialize(): Promise<DependencyContainer> {
-    // Register environment
+    // Register environment and config service
     this.registry.registerInstance(ServiceTokens.ENV, this.env);
+    this.registry.registerInstance('IConfigService', this.configService);
     
     // Register infrastructure services first (always needed)
     this.registerLogger();
@@ -68,15 +74,16 @@ export class ServiceFactory {
     this.registry.registerSingleton<IMessagingService>(
       ServiceTokens.MESSAGING,
       (container) => {
-        const env = container.resolve<ValidatedEnv>(ServiceTokens.ENV);
+        const configService = container.resolve<IConfigService>('IConfigService');
+        const zapiConfig = configService.getServiceConfig('zapi');
         
-        // Check for required Z-API credentials at runtime
-        const instanceId = String(getRuntimeEnv(env, 'Z_API_INSTANCE_ID') || env.Z_API_INSTANCE_ID);
-        const instanceToken = String(getRuntimeEnv(env, 'Z_API_INSTANCE_TOKEN') || env.Z_API_INSTANCE_TOKEN);
-        // Client token is used both for webhook auth and API calls (as Client-Token header)
-        const clientToken = String(getRuntimeEnv(env, 'Z_API_CLIENT_TOKEN') || getRuntimeEnv(env, 'Z_API_SECURITY_TOKEN') || env.Z_API_CLIENT_TOKEN || '');
+        if (!zapiConfig || !('instanceId' in zapiConfig)) {
+          throw new Error('Z-API configuration not found');
+        }
         
-        if (!instanceId || instanceId === 'undefined' || !instanceToken || instanceToken === 'undefined' || !clientToken || clientToken === 'undefined') {
+        const { instanceId, instanceToken, clientToken } = zapiConfig as any;
+        
+        if (!instanceId || !instanceToken || !clientToken) {
           throw new Error('Z-API credentials (Instance ID, Instance Token, and Client Token) are required for messaging service');
         }
         
@@ -84,11 +91,11 @@ export class ServiceFactory {
           instanceId,
           instanceToken,
           securityToken: clientToken,  // Used as Client-Token header in API calls
-          rateLimitPerMinute: 60,
+          rateLimitPerMinute: zapiConfig.rateLimitPerMinute,
           retryConfig: {
-            maxAttempts: 3,
-            initialDelayMs: 1000,
-            maxDelayMs: 30000,
+            maxAttempts: zapiConfig.maxRetries,
+            initialDelayMs: zapiConfig.retryDelayMs,
+            maxDelayMs: zapiConfig.timeoutMs,
             backoffMultiplier: 2,
           },
         });
@@ -104,7 +111,16 @@ export class ServiceFactory {
       ServiceTokens.STORAGE,
       (container) => {
         const env = container.resolve<ValidatedEnv>(ServiceTokens.ENV);
-        return new KVStorageService(env.USER_CONFIGS);
+        const configService = container.resolve<IConfigService>('IConfigService');
+        const storageConfig = configService.get<any>('storage');
+        
+        return new KVStorageService(
+          env.USER_CONFIGS,
+          {
+            cacheEnabled: storageConfig?.cacheEnabled ?? true,
+            cacheTTLSeconds: storageConfig?.cacheTTLSeconds ?? 300,
+          }
+        );
       }
     );
   }
@@ -116,10 +132,14 @@ export class ServiceFactory {
     this.registry.registerSingleton<IAIService>(
       ServiceTokens.AI,
       (container) => {
-        const env = container.resolve<ValidatedEnv>(ServiceTokens.ENV);
+        const configService = container.resolve<IConfigService>('IConfigService');
+        const openaiConfig = configService.getServiceConfig('openai');
         
-        // Check for OpenAI API key at runtime
-        const apiKey = String(getRuntimeEnv(env, 'OPENAI_API_KEY') || env.OPENAI_API_KEY);
+        if (!openaiConfig || !('apiKey' in openaiConfig)) {
+          throw new Error('OpenAI configuration not found');
+        }
+        
+        const { apiKey, model, maxTokens } = openaiConfig as any;
         
         if (!apiKey || apiKey === 'undefined') {
           throw new Error('OpenAI API key is required for AI service');
@@ -127,16 +147,16 @@ export class ServiceFactory {
         
         return new OpenAIService({
           apiKey,
-          defaultModel: 'gpt-4-turbo-preview',
-          maxTokensPerRequest: 4096,
+          defaultModel: model || 'gpt-4-turbo-preview',
+          maxTokensPerRequest: maxTokens || 4096,
           maxTokensPerDay: 1000000,
           maxCostPerDay: 100,
           cacheEnabled: true,
           cacheTTLMs: 3600000,
           retryConfig: {
-            maxAttempts: 3,
-            initialDelayMs: 1000,
-            maxDelayMs: 30000,
+            maxAttempts: openaiConfig.maxRetries,
+            initialDelayMs: openaiConfig.retryDelayMs,
+            maxDelayMs: openaiConfig.timeoutMs,
             backoffMultiplier: 2,
           },
         });
@@ -176,11 +196,28 @@ export class ServiceFactory {
    * Register event bus
    */
   private registerEventBus(): void {
+    // Register legacy event bus
     this.registry.registerSingleton<IEventBus>(
       ServiceTokens.EVENT_BUS,
       (container) => {
         const logger = container.resolve<ILogger>(ServiceTokens.LOGGER);
         return new EventBus(logger);
+      }
+    );
+    
+    // Register typed event bus adapter
+    this.registry.registerSingleton<ITypedEventBus>(
+      'ITypedEventBus',
+      (container) => {
+        const legacyEventBus = container.resolve<IEventBus>(ServiceTokens.EVENT_BUS);
+        const logger = container.resolve<ILogger>(ServiceTokens.LOGGER);
+        const configService = container.resolve<IConfigService>('IConfigService');
+        
+        return createTypedEventBus(legacyEventBus, {
+          logger,
+          validateEvents: configService.getEnvironment() !== 'production',
+          enableMetrics: configService.isFeatureEnabled('debugMode'),
+        });
       }
     );
   }

@@ -39,6 +39,10 @@ Most AI assistants are expensive or limited. JarvisBot offers:
 
 ## 🏗️ Architecture
 
+### Modular Event-Driven Design
+
+JarvisBot v2 features a fully modular, event-driven architecture:
+
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │                 │     │                  │     │                 │
@@ -47,14 +51,55 @@ Most AI assistants are expensive or limited. JarvisBot offers:
 └─────────────────┘     │   Business API)  │     │ (JarvisBot)     │
                         └──────────────────┘     └─────────────────┘
                                 │                          │
-                                │ Webhook                  │ Processing
                                 ▼                          ▼
-                         ┌──────────────────┐     ┌─────────────────┐
-                         │                  │     │ • OpenAI Whisper│
-                         │  Audio Messages  │     │ • Todoist API   │
-                         │  Real-time       │     │ • Portfolio APIs│
-                         └──────────────────┘     │ • Fund APIs     │
+                        ┌──────────────────┐     ┌─────────────────┐
+                        │ CompositeRouter  │     │ Domain Modules: │
+                        │ • Auth Middleware│     │ • Audio         │
+                        │ • Validation     │     │ • Notes         │
+                        │ • Rate Limiting  │     │ • Portfolio     │
+                        │ • Error Handling│     │ • Funds         │
+                        └──────────────────┘     └─────────────────┘
+                                │                          │
+                                ▼                          ▼
+                        ┌──────────────────┐     ┌─────────────────┐
+                        │ Event Bus System │     │ Core Services:  │
+                        │ • Typed Events   │     │ • Messaging     │
+                        │ • Async Handlers │     │ • Storage       │
+                        │ • Concurrent Ops │     │ • AI Service    │
+                        └──────────────────┘     │ • Config        │
                                                   └─────────────────┘
+```
+
+### Key Components
+
+- **CompositeApiRouter**: Modular routing with domain-specific routers
+- **Middleware Stack**: Authentication, validation, rate limiting, error handling
+- **TypedEventBus**: Type-safe event system with Zod validation
+- **Domain Modules**: Isolated business logic with clear boundaries
+- **Service Factory**: Dependency injection and service lifecycle management
+
+## 📁 Project Structure
+
+```
+src/
+├── core/                  # Core infrastructure
+│   ├── api/              # API routing and middleware
+│   │   ├── routers/      # Domain-specific routers
+│   │   └── middleware/   # Request processing middleware
+│   ├── config/           # Configuration management
+│   ├── errors/           # Error handling system
+│   ├── event-bus/        # Event-driven communication
+│   ├── logging/          # Logging infrastructure
+│   ├── modules/          # Module management
+│   ├── scheduler/        # Task scheduling
+│   └── services/         # Core services (messaging, storage, AI)
+├── domains/              # Business domain modules
+│   ├── audio-processing/ # Voice message handling
+│   ├── fund-management/  # Investment fund tracking
+│   ├── notes/           # Note-taking and Obsidian sync
+│   └── portfolio/       # Stock portfolio management
+├── legacy/              # Old code for reference (not used)
+└── index.ts            # Main entry point
 ```
 
 ## 🚀 Quick Start

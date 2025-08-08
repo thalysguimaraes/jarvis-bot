@@ -50,6 +50,7 @@
     "zod": "^4.0.15"
   },
   "dependencies": {
-    "@the-convocation/twitter-scraper": "^0.17.2"
+    "@the-convocation/twitter-scraper": "^0.17.2",
+    "reflect-metadata": "^0.2.2"
   }
 }

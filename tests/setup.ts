@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { vi } from 'vitest';
 import { MockKVNamespace } from './mocks/kv-namespace';
 import { MockMessagingService } from './mocks/messaging-service';
@@ -37,6 +38,14 @@ if (!global.crypto) {
     configurable: true,
     writable: true,
   });
+}
+
+// Polyfill atob/btoa for Node test environment
+if (!(global as any).atob) {
+  (global as any).atob = (input: string) => Buffer.from(input, 'base64').toString('binary');
+}
+if (!(global as any).btoa) {
+  (global as any).btoa = (input: string) => Buffer.from(input, 'binary').toString('base64');
 }
 
 // Export mock factories for use in tests

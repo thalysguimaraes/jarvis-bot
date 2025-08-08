@@ -1,4 +1,4 @@
-import { StockData, PortfolioItem, BrapiQuoteResponse } from '../types';
+import { StockData } from '../types';
 import { ILogger } from '../../../core/logging/Logger';
 
 export interface IStockApiService {
@@ -22,10 +22,11 @@ export class BrapiStockApiService implements IStockApiService {
     const tickerSet = new Set(tickers);
     
     try {
-      // Use the list endpoint to get all stocks at once
-      const url = `${this.baseUrl}/list?token=${this.apiToken}`;
+      // Use the quote endpoint for requested tickers
+      const symbols = tickers.join(',');
+      const url = `${this.baseUrl}/${symbols}?token=${this.apiToken}`;
       
-      this.logger.debug('Fetching stock prices from list endpoint', { tickers });
+      this.logger.debug('Fetching stock prices', { tickers });
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -34,28 +35,31 @@ export class BrapiStockApiService implements IStockApiService {
       
       const data = await response.json() as any;
       
-      if (!data.stocks || !Array.isArray(data.stocks)) {
-        this.logger.warn('Unexpected response format from Brapi API', { tickers });
+      if (!data.results || !Array.isArray(data.results)) {
+        this.logger.warn('No results from Brapi API', { tickers });
         return stockData;
       }
       
-      // Filter and map the stocks we need
-      for (const stock of data.stocks) {
-        if (tickerSet.has(stock.stock)) {
-          stockData.set(stock.stock, {
-            price: stock.close || 0,
-            previousClose: stock.close || 0, // List endpoint doesn't provide previous close
-            change: 0, // Calculate if needed
-            changePercent: 0 // Calculate if needed
-          });
-        }
+      // Map the results
+      for (const item of data.results) {
+        const symbol = item.symbol;
+        if (!tickerSet.has(symbol)) continue;
+        stockData.set(symbol, {
+          price: item.regularMarketPrice ?? 0,
+          previousClose: item.regularMarketPreviousClose ?? 0,
+          change: item.regularMarketChange ?? 0,
+          changePercent: item.regularMarketChangePercent ?? 0,
+        });
       }
       
       // Log any missing tickers
       const foundTickers = Array.from(stockData.keys());
       const missingTickers = tickers.filter(t => !stockData.has(t));
       
-      if (missingTickers.length > 0) {
+      if (missingTickers.length === tickers.length) {
+        // No results at all for requested tickers
+        this.logger.warn('No results from Brapi API', { tickers });
+      } else if (missingTickers.length > 0) {
         this.logger.warn('Some tickers not found in Brapi response', { missingTickers });
       }
       

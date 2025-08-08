@@ -1,3 +1,4 @@
+import { Injectable } from '../../decorators/Injectable';
 import {
   IAIService,
   TranscriptionOptions,
@@ -36,8 +37,9 @@ interface TokenCounter {
   resetAt: Date;
 }
 
+@Injectable({ singleton: true })
 export class OpenAIService implements IAIService {
-  private config: Required<Omit<OpenAIConfig, 'organization'>>;
+  private config: Required<Omit<OpenAIConfig, 'organization'>> & { organization?: string };
   private retryConfig: RetryConfig;
   private transcriptionCache: ResponseCache<TranscriptionResult>;
   private classificationCache: ResponseCache<ClassificationResult>;
@@ -113,7 +115,8 @@ export class OpenAIService implements IAIService {
     const formData = new FormData();
     
     // Determine file extension based on actual audio format
-    const audioBlob = new Blob([audioData], { type: 'audio/ogg' });
+    const audioBuffer = audioData instanceof Uint8Array ? new Uint8Array(audioData).slice().buffer : audioData;
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/ogg' });
     formData.append('file', audioBlob, 'audio.ogg');
     formData.append('model', 'whisper-1');
     
@@ -372,7 +375,7 @@ export class OpenAIService implements IAIService {
     return results;
   }
   
-  countTokens(text: string, model?: string): number {
+  countTokens(text: string, _model?: string): number {
     // Simplified token counting (roughly 4 chars per token)
     // In production, use a proper tokenizer like tiktoken
     if (!text || typeof text !== 'string') {
@@ -504,7 +507,7 @@ export class OpenAIService implements IAIService {
   }
   
   // Private methods
-  private async makeRequest<T>(
+  private async makeRequest<T = any>(
     endpoint: string,
     options: RequestInit,
     useJson = true
@@ -526,7 +529,7 @@ export class OpenAIService implements IAIService {
         };
         
         if (this.config.organization) {
-          headers['OpenAI-Organization'] = this.config.organization;
+          headers['OpenAI-Organization'] = this.config.organization as string;
         }
         
         const response = await fetch(url, {
@@ -541,7 +544,7 @@ export class OpenAIService implements IAIService {
         
         if (response.ok) {
           this.rateLimitRemaining--;
-          return useJson ? await response.json() : await response.text();
+          return (useJson ? await response.json() : await response.text()) as T;
         }
         
         // Handle rate limiting

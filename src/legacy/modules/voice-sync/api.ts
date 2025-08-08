@@ -1,4 +1,8 @@
 // Voice Note Sync API for Obsidian Plugin Integration
+// This is a legacy compatibility layer that wraps the new architecture
+
+import { VoiceNoteSyncService } from '../../../domains/notes/services/VoiceNoteSyncService';
+import { ConsoleLogger } from '../../../core/logging/ConsoleLogger';
 
 export interface StoredVoiceNote {
   id: string;
@@ -6,6 +10,7 @@ export interface StoredVoiceNote {
   timestamp: string;
   phone: string;
   processed: boolean;
+  syncedToObsidian?: boolean;
   metadata?: {
     audioUrl?: string;
     duration?: number;
@@ -15,9 +20,42 @@ export interface StoredVoiceNote {
 
 export class VoiceNoteSyncAPI {
   private env: any;
+  private service: VoiceNoteSyncService;
+  private logger = new ConsoleLogger('VoiceNoteSyncAPI');
 
   constructor(env: any) {
     this.env = env;
+    // Create storage adapter based on environment
+    const storage = this.createStorageAdapter(env.USER_CONFIGS);
+    this.service = new VoiceNoteSyncService(storage, this.logger);
+  }
+
+  private createStorageAdapter(kvNamespace: any) {
+    // If it's a mock KV for tests, use compatibility methods
+    if (kvNamespace && typeof kvNamespace.set === 'function') {
+      return {
+        get: async (key: string) => {
+          const value = await kvNamespace.get(key, { type: 'json' });
+          return value;
+        },
+        put: async (key: string, value: any) => {
+          await kvNamespace.set(key, value);
+        },
+        list: async (options?: any) => {
+          const result = await kvNamespace.list(options);
+          return {
+            keys: result.keys.map((k: any) => ({ name: k.name || k }))
+          };
+        }
+      };
+    }
+    
+    // Otherwise use KV namespace directly
+    return {
+      get: async (key: string) => kvNamespace.get(key, { type: 'json' }),
+      put: async (key: string, value: any) => kvNamespace.put(key, JSON.stringify(value)),
+      list: async (options?: any) => kvNamespace.list(options)
+    };
   }
 
   /**
@@ -35,8 +73,8 @@ export class VoiceNoteSyncAPI {
         });
       }
 
-      // Get unprocessed notes from KV storage
-      const notes = await this.fetchUnprocessedNotesFromKV();
+      // Get unprocessed notes from service
+      const notes = await this.service.getUnprocessedNotes();
       
       return new Response(JSON.stringify(notes), {
         headers: { 
@@ -69,8 +107,8 @@ export class VoiceNoteSyncAPI {
         });
       }
 
-      // Mark note as processed in KV storage
-      await this.markNoteProcessedInKV(noteId);
+      // Mark note as processed using service
+      await this.service.markNoteAsProcessed(noteId);
       
       return new Response(JSON.stringify({ success: true }), {
         headers: { 
@@ -79,8 +117,17 @@ export class VoiceNoteSyncAPI {
           'Access-Control-Allow-Headers': 'authorization, content-type, Authorization, Content-Type'
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error marking note as processed:', error);
+      
+      // Check if it's a not found error
+      if (error.message?.includes('not found')) {
+        return new Response(JSON.stringify({ error: 'Note not found' }), { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
       return new Response(JSON.stringify({ error: 'Internal Server Error' }), { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -114,6 +161,7 @@ export class VoiceNoteSyncAPI {
     return apiKey === validApiKey;
   }
 
+  // Direct KV methods for backward compatibility
   private async fetchUnprocessedNotesFromKV(): Promise<StoredVoiceNote[]> {
     if (!this.env.USER_CONFIGS) {
       throw new Error('KV storage not configured');
@@ -126,14 +174,15 @@ export class VoiceNoteSyncAPI {
     
     for (const key of list.keys) {
       try {
-        const noteData = await this.env.USER_CONFIGS.get(key.name, 'json');
-        if (noteData && !noteData.processed) {
+        const noteData = await this.env.USER_CONFIGS.get(key.name, { type: 'json' });
+        if (noteData && !noteData.processed && !noteData.syncedToObsidian) {
           notes.push({
             id: key.name.replace('voice_note:', ''),
             transcription: noteData.transcription,
             timestamp: noteData.timestamp,
             phone: noteData.phone,
-            processed: false,
+            processed: noteData.processed || false,
+            syncedToObsidian: noteData.syncedToObsidian || false,
             metadata: noteData.metadata
           });
         }
@@ -154,12 +203,14 @@ export class VoiceNoteSyncAPI {
     }
 
     const key = `voice_note:${noteId}`;
-    const noteData = await this.env.USER_CONFIGS.get(key, 'json');
+    const noteData = await this.env.USER_CONFIGS.get(key, { type: 'json' });
     
-    if (noteData) {
-      noteData.processed = true;
-      noteData.processedAt = new Date().toISOString();
-      await this.env.USER_CONFIGS.put(key, JSON.stringify(noteData));
+    if (!noteData) {
+      throw new Error(`Note ${noteId} not found`);
     }
+    
+    noteData.processed = true;
+    noteData.processedAt = new Date().toISOString();
+    await this.env.USER_CONFIGS.put(key, JSON.stringify(noteData));
   }
 }

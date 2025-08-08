@@ -315,6 +315,13 @@ export class ModuleManager {
   }
   
   /**
+   * Get all modules as a Map
+   */
+  getAll(): Map<string, IDomainModule> {
+    return new Map(this.modules);
+  }
+  
+  /**
    * Get health status of all modules
    */
   async getHealthStatus(): Promise<Record<string, ModuleHealth>> {
@@ -327,15 +334,5 @@ export class ModuleManager {
     return health;
   }
   
-  /**
-   * Topological sort for dependency resolution
-   * Note: Currently not used since modules depend on services, not other modules
-   * Kept for future use if inter-module dependencies are added
-   */
-  private topologicalSort(): string[] {
-    // For now, just return the registration order
-    // since modules depend on services (which are already initialized)
-    // not on other modules
-    return [...this.initOrder];
-  }
+  // (topologicalSort removed - not used in current architecture)
 }

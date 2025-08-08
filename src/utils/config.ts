@@ -10,6 +10,8 @@ interface ObsidianConfig {
   githubRepo?: string;
   vaultPath?: string;
   noteFormat?: string;
+  dailyNote?: boolean;
+  notePath?: string;
 }
 
 interface GitHubConfig {
@@ -18,6 +20,7 @@ interface GitHubConfig {
   repo: string;
   branch?: string;
   path?: string;
+  vaultPath?: string;
 }
 
 export class Config {
@@ -76,7 +79,8 @@ export class Config {
       owner: env.GITHUB_OWNER,
       repo: env.GITHUB_REPO,
       branch: env.GITHUB_BRANCH || 'main',
-      vaultPath: env.OBSIDIAN_VAULT_PATH
+      vaultPath: env.OBSIDIAN_VAULT_PATH,
+      path: env.OBSIDIAN_VAULT_PATH,
     };
   }
 

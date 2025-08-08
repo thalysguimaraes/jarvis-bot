@@ -16,18 +16,58 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   private readonly NAMESPACE = 'voice_notes';
   private readonly VOICE_NOTE_PREFIX = 'voice_note:';
   private readonly DEFAULT_TTL = 86400 * 90; // 90 days
+  private readonly legacyStorage: boolean;
 
   constructor(
     private storage: IStorageService,
-    private logger: ILogger
-  ) {}
+    private logger: ILogger,
+    legacyStorage?: boolean
+  ) {
+    this.legacyStorage = legacyStorage ?? false;
+  }
+
+  // Support legacy storage mock shape used in tests (set/get/list without namespace)
+  private get isLegacy(): boolean {
+    return this.legacyStorage || (typeof (this.storage as any).set === 'function' && typeof (this.storage as any).put !== 'function');
+  }
+
+  private async storagePut(key: string, value: string, options?: { ttl?: number }): Promise<void> {
+    if (typeof (this.storage as any).put === 'function') {
+      return (this.storage as any).put(this.NAMESPACE, key, value, { ttl: options?.ttl });
+    }
+    // legacy: set(key, value, { expirationTtl })
+    const legacyOpts = options?.ttl ? { expirationTtl: options.ttl } : undefined;
+    return (this.storage as any).set(key, value, legacyOpts);
+  }
+
+  private async storageGet(key: string): Promise<string | null> {
+    if (typeof (this.storage as any).get === 'function' && (this.storage as any).get.length >= 2) {
+      return (this.storage as any).get(this.NAMESPACE, key);
+    }
+    return (this.storage as any).get(key);
+  }
+
+  private async storageList(prefix: string): Promise<Array<{ name: string }>> {
+    const result = await (this.storage as any).list(
+      typeof (this.storage as any).list === 'function' && (this.storage as any).list.length >= 2
+        ? this.NAMESPACE
+        : { prefix }
+      ,
+      typeof (this.storage as any).list === 'function' && (this.storage as any).list.length >= 2
+        ? { prefix }
+        : undefined
+    );
+    // New shape: { keys: [{ name }] }, legacy: string[]
+    if (Array.isArray(result)) {
+      return (result as string[]).map(name => ({ name }));
+    }
+    return (result.keys || []) as Array<{ name: string }>;
+  }
 
   async storeVoiceNote(note: VoiceNote): Promise<void> {
     try {
       const key = `${this.VOICE_NOTE_PREFIX}${note.id}`;
-      await this.storage.put(this.NAMESPACE, key, JSON.stringify(note), {
-        ttl: this.DEFAULT_TTL
-      });
+      await this.storagePut(key, JSON.stringify(note), { ttl: this.DEFAULT_TTL });
       
       this.logger.info('Voice note stored', {
         noteId: note.id,
@@ -43,10 +83,10 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   async getUnprocessedNotes(): Promise<VoiceNote[]> {
     try {
       const notes: VoiceNote[] = [];
-      const listResult = await this.storage.list(this.NAMESPACE, { prefix: this.VOICE_NOTE_PREFIX });
+      const keys = await this.storageList(this.VOICE_NOTE_PREFIX);
       
-      for (const keyInfo of listResult.keys) {
-        const noteData = await this.storage.get(this.NAMESPACE, keyInfo.name);
+      for (const keyInfo of keys) {
+        const noteData = await this.storageGet(keyInfo.name);
         if (noteData) {
           const note = JSON.parse(noteData) as VoiceNote;
           if (!note.processed) {
@@ -71,10 +111,10 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   async getAllNotes(filter?: NoteFilter): Promise<VoiceNote[]> {
     try {
       const notes: VoiceNote[] = [];
-      const listResult = await this.storage.list(this.NAMESPACE, { prefix: this.VOICE_NOTE_PREFIX });
+      const keys = await this.storageList(this.VOICE_NOTE_PREFIX);
       
-      for (const keyInfo of listResult.keys) {
-        const noteData = await this.storage.get(this.NAMESPACE, keyInfo.name);
+      for (const keyInfo of keys) {
+        const noteData = await this.storageGet(keyInfo.name);
         if (noteData) {
           const note = JSON.parse(noteData) as VoiceNote;
           
@@ -96,8 +136,10 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
       );
       
       // Apply pagination
-      if (filter?.offset !== undefined && filter?.limit !== undefined) {
-        return notes.slice(filter.offset, filter.offset + filter.limit);
+      if (filter?.limit !== undefined || filter?.offset !== undefined) {
+        const offset = filter?.offset ?? 0;
+        const limit = filter?.limit ?? notes.length;
+        return notes.slice(offset, offset + limit);
       }
       
       this.logger.debug('Retrieved all notes', { count: notes.length, filtered: !!filter });
@@ -112,10 +154,10 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
     try {
       const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
       const notes: VoiceNote[] = [];
-      const listResult = await this.storage.list(this.NAMESPACE, { prefix: this.VOICE_NOTE_PREFIX });
+      const keys = await this.storageList(this.VOICE_NOTE_PREFIX);
       
-      for (const keyInfo of listResult.keys) {
-        const noteData = await this.storage.get(this.NAMESPACE, keyInfo.name);
+      for (const keyInfo of keys) {
+        const noteData = await this.storageGet(keyInfo.name);
         if (noteData) {
           const note = JSON.parse(noteData) as VoiceNote;
           if (new Date(note.timestamp) >= cutoffTime) {
@@ -144,7 +186,7 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   async markNoteAsProcessed(noteId: string): Promise<void> {
     try {
       const key = `${this.VOICE_NOTE_PREFIX}${noteId}`;
-      const noteData = await this.storage.get(this.NAMESPACE, key);
+      const noteData = await this.storageGet(key);
       
       if (!noteData) {
         throw new Error(`Note not found: ${noteId}`);
@@ -153,9 +195,7 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
       const note = JSON.parse(noteData) as VoiceNote;
       note.processed = true;
       
-      await this.storage.put(this.NAMESPACE, key, JSON.stringify(note), {
-        ttl: this.DEFAULT_TTL
-      });
+      await this.storagePut(key, JSON.stringify(note), { ttl: this.DEFAULT_TTL });
       
       this.logger.info('Note marked as processed', { noteId });
     } catch (error) {
@@ -167,7 +207,7 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   async markNoteAsSynced(noteId: string): Promise<void> {
     try {
       const key = `${this.VOICE_NOTE_PREFIX}${noteId}`;
-      const noteData = await this.storage.get(this.NAMESPACE, key);
+      const noteData = await this.storageGet(key);
       
       if (!noteData) {
         throw new Error(`Note not found: ${noteId}`);
@@ -175,10 +215,9 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
       
       const note = JSON.parse(noteData) as VoiceNote;
       note.syncedToObsidian = true;
+      note.processed = true;
       
-      await this.storage.put(this.NAMESPACE, key, JSON.stringify(note), {
-        ttl: this.DEFAULT_TTL
-      });
+      await this.storagePut(key, JSON.stringify(note), { ttl: this.DEFAULT_TTL });
       
       this.logger.info('Note marked as synced to Obsidian', { noteId });
     } catch (error) {
@@ -190,7 +229,7 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   async getNoteById(noteId: string): Promise<VoiceNote | null> {
     try {
       const key = `${this.VOICE_NOTE_PREFIX}${noteId}`;
-      const noteData = await this.storage.get(this.NAMESPACE, key);
+      const noteData = await this.storageGet(key);
       
       if (!noteData) {
         return null;

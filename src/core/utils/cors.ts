@@ -92,7 +92,7 @@ export function addCorsHeaders(
  * Create a Response with CORS headers
  */
 export function createCorsResponse(
-  body: BodyInit | null,
+  body: any,
   init: ResponseInit = {},
   corsOptions: CorsOptions = {}
 ): Response {

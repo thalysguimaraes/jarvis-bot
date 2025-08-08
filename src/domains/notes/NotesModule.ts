@@ -1,11 +1,11 @@
 import { BaseDomainModule, ModuleHealth } from '../../core/modules/IDomainModule';
 import { IStorageService } from '../../core/services/interfaces/IStorageService';
 import { ILogger } from '../../core/logging/Logger';
-import { DependencyContainer } from '../../core/services/ServiceRegistry';
+// import { DependencyContainer } from '../../core/services/ServiceRegistry';
 import {
   NoteCreatedEvent,
   NoteSyncedEvent,
-  AudioTranscribedEvent,
+  // AudioTranscribedEvent,
   AudioClassifiedEvent
 } from '../../core/event-bus/EventTypes';
 import { Note, NoteStorage, VoiceNote } from './types';

@@ -1,3 +1,4 @@
+import { Injectable } from '../../decorators/Injectable';
 import {
   IStorageService,
   StorageOptions,
@@ -10,13 +11,26 @@ import {
  * KV Storage Service with namespace isolation
  * Provides virtual namespaces within a single KV namespace
  */
+
+export interface KVStorageConfig {
+  cacheEnabled?: boolean;
+  cacheTTLSeconds?: number;
+}
+
+@Injectable({ singleton: true })
 export class KVStorageService implements IStorageService {
   private kv: KVNamespace;
   private namespacePrefix = 'ns';
   private separator = ':';
+  private config: KVStorageConfig;
   
-  constructor(kv: KVNamespace) {
+  constructor(kv: KVNamespace, config: KVStorageConfig = {}) {
     this.kv = kv;
+    this.config = {
+      cacheEnabled: true,
+      cacheTTLSeconds: 300,
+      ...config
+    };
   }
   
   async get<T = any>(namespace: string, key: string): Promise<T | null> {
@@ -109,15 +123,16 @@ export class KVStorageService implements IStorageService {
     });
     
     // Remove namespace prefix from keys
-    const keys = result.keys.map(key => ({
+    const keys = result.keys.map((key: any) => ({
       name: this.extractKey(namespace, key.name),
-      metadata: key.metadata,
+      metadata: key.metadata as Record<string, any> | undefined,
     }));
     
+    const anyResult = result as any;
     return {
       keys,
-      cursor: result.cursor,
-      hasMore: !result.list_complete,
+      cursor: anyResult.cursor,
+      hasMore: !anyResult.list_complete,
     };
   }
   
@@ -139,7 +154,7 @@ export class KVStorageService implements IStorageService {
       );
       
       deleted += result.keys.length;
-      cursor = result.cursor;
+      cursor = (result as any).cursor;
       
     } while (cursor);
     
@@ -202,16 +217,16 @@ export class KVStorageService implements IStorageService {
       keyCount += result.keys.length;
       
       // Track most recent modification
-      for (const key of result.keys) {
-        if (key.metadata?.updatedAt) {
-          const updated = new Date(key.metadata.updatedAt);
+      for (const key of result.keys as any) {
+        if ((key.metadata as any)?.updatedAt) {
+          const updated = new Date((key.metadata as any).updatedAt);
           if (!lastModified || updated > lastModified) {
             lastModified = updated;
           }
         }
       }
       
-      cursor = result.cursor;
+      cursor = (result as any).cursor;
     } while (cursor);
     
     return {
@@ -241,7 +256,7 @@ export class KVStorageService implements IStorageService {
       });
       
       await Promise.all(promises);
-      cursor = result.cursor;
+      cursor = (result as any).cursor;
       
     } while (cursor);
     

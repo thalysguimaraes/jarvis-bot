@@ -62,3 +62,4 @@ real-*.js
 *.backup
 *.bak
 wrangler.toml.backup.dev.vars.complete
+.dev.vars.complete

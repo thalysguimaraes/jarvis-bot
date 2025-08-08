@@ -50,10 +50,10 @@ export class ZaisenApiService implements IFundApiService {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       this.logger.debug('Zaisen API response received', { endpoint });
       
-      return data;
+      return data as T;
     } catch (error) {
       this.logger.error('Zaisen API request failed', error as Error, { endpoint });
       throw error;

@@ -1,7 +1,6 @@
 import { 
   FundPosition, 
-  FundPortfolioCalculation, 
-  FundQuote 
+  FundPortfolioCalculation
 } from '../types';
 import { IFundApiService } from './ZaisenApiService';
 import { ILogger } from '../../../core/logging/Logger';

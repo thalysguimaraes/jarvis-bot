@@ -1,4 +1,4 @@
-import { IExternalAPIService, APIResponse } from './IExternalAPIService';
+import { IExternalAPIService } from './IExternalAPIService';
 
 /**
  * Message types supported by the messaging service

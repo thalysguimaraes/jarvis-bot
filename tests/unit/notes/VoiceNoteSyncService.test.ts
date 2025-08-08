@@ -70,7 +70,10 @@ describe('VoiceNoteSyncService', () => {
       await service.storeVoiceNote(note);
       
       const saved = await mockKV.get('voice_note:test-id-1', { type: 'json' });
-      expect(saved).toEqual(note);
+      expect(saved).toEqual({
+        ...note,
+        timestamp: note.timestamp.toISOString()
+      });
       expect(mockLogger.info).toHaveBeenCalledWith('Voice note stored', {
         noteId: 'test-id-1',
         phone: '5511999999999',
@@ -338,7 +341,10 @@ describe('VoiceNoteSyncService', () => {
       
       const retrieved = await service.getNoteById('test-id');
       
-      expect(retrieved).toEqual(note);
+      expect(retrieved).toEqual({
+        ...note,
+        timestamp: note.timestamp.toISOString()
+      });
     });
 
     it('should return null for non-existent note', async () => {

@@ -1,5 +1,5 @@
 import { BaseDomainModule, ModuleHealth } from '@/core/modules/IDomainModule';
-import { IMessagingService, Message, MessageType } from '@/core/services/interfaces/IMessagingService';
+import { IMessagingService, MessageType } from '@/core/services/interfaces/IMessagingService';
 import { IStorageService } from '@/core/services/interfaces/IStorageService';
 import { IAIService } from '@/core/services/interfaces/IAIService';
 import { ILogger } from '@/core/logging/Logger';
@@ -323,12 +323,12 @@ export class AudioProcessingModule extends BaseDomainModule {
     await this.sendMessage(userId, `📝 Nota salva: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
   }
   
-  private async handleFundCommand(userId: string, text: string, correlationId?: string): Promise<void> {
+  private async handleFundCommand(userId: string, text: string, _correlationId?: string): Promise<void> {
     // This would be handled by the Fund module via events
     await this.sendMessage(userId, `💰 Comando de fundo recebido. Processando: "${text}"`);
   }
   
-  private async handleQuestion(userId: string, text: string, correlationId?: string): Promise<void> {
+  private async handleQuestion(userId: string, text: string, _correlationId?: string): Promise<void> {
     try {
       // Generate AI response
       const response = await this.aiService.generateCompletion(text, {

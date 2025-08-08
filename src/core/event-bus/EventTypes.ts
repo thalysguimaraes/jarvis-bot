@@ -282,3 +282,13 @@ export const EventTypes = {
 } as const;
 
 export type EventType = typeof EventTypes[keyof typeof EventTypes];
+
+/**
+ * Generic event class for dynamic event types
+ * Useful for simple events where defining a dedicated class is overkill
+ */
+export class GenericEvent extends DomainEvent {
+  constructor(type: string, payload: any, metadata?: Partial<EventMetadata>) {
+    super(type, payload, metadata);
+  }
+}

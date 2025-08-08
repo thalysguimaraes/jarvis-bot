@@ -1,5 +1,5 @@
 import { IEventBus } from '../event-bus/EventBus';
-import { DomainEvent } from '../event-bus/DomainEvent';
+import { GenericEvent } from '../event-bus/EventTypes';
 import { ILogger } from '../logging/Logger';
 
 export interface ScheduledTask {
@@ -93,16 +93,13 @@ export class SchedulerManager implements ISchedulerManager {
         });
         
         // Publish the task's event
-        const event = new DomainEvent(
-          task.eventType,
-          task.payload || {},
-          {
-            source: 'scheduler',
-            correlationId: `sched_${Date.now()}_${task.id}`
-          }
+        await this.eventBus.publish(
+          new GenericEvent(
+            task.eventType,
+            task.payload || {},
+            { source: 'scheduler', correlationId: `sched_${Date.now()}_${task.id}` }
+          )
         );
-        
-        await this.eventBus.publish(event);
         
         this.logger.info('Scheduled task executed successfully', { 
           taskId: task.id 

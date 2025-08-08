@@ -1,7 +1,10 @@
 export async function debugWebhook(request: Request): Promise<Response> {
   const method = request.method;
   const url = new URL(request.url);
-  const headers = Object.fromEntries(request.headers.entries());
+  const headersObj: Record<string, string> = {};
+  for (const [k, v] of (request.headers as any)) {
+    headersObj[k.toLowerCase()] = v;
+  }
   
   let body = '';
   let parsedBody: any = null;
@@ -26,13 +29,13 @@ export async function debugWebhook(request: Request): Promise<Response> {
     method,
     path: url.pathname,
     query: Object.fromEntries(url.searchParams.entries()),
-    headers,
+    headers: headersObj,
     body,
     parsedBody,
     info: {
-      hasAuthorization: !!headers.authorization,
-      hasClientToken: !!headers['client-token'],
-      contentType: headers['content-type'],
+       hasAuthorization: !!headersObj.authorization,
+       hasClientToken: !!headersObj['client-token'],
+       contentType: headersObj['content-type'],
       bodyLength: body.length
     }
   };

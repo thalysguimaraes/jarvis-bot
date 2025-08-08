@@ -7,7 +7,7 @@ import { ServiceFactory } from './core/services/ServiceFactory';
 import { ModuleManager } from './core/modules/IDomainModule';
 import { ILogger } from './core/logging/Logger';
 import { SchedulerManager, getDefaultScheduledTasks } from './core/scheduler/SchedulerManager';
-import { ApiRouter } from './core/api/ApiRouter';
+import { CompositeApiRouter } from './core/api/CompositeApiRouter';
 import { createCorsResponse, handleCorsPreflight, addCorsHeaders } from './core/utils/cors';
 
 // Import domain modules
@@ -45,7 +45,7 @@ export interface Env {
   ZAISEN_API_KEY?: string;
 
   // KV Namespaces
-  USER_CONFIGS: KVNamespace;
+  USER_CONFIGS: any;
 
   // Webhook Configuration
   WEBHOOK_SECRET: string;
@@ -55,7 +55,7 @@ export default {
   async fetch(
     request: Request,
     env: Env,
-    ctx: ExecutionContext
+    ctx: any
   ): Promise<Response> {
     // Handle CORS preflight for all routes
     const preflightResponse = handleCorsPreflight(request);
@@ -63,18 +63,10 @@ export default {
       return preflightResponse;
     }
     
-    // Quick health check bypass for debugging
     const url = new URL(request.url);
-    if (url.pathname === '/health') {
-      return createCorsResponse(JSON.stringify({ 
-        status: 'ok',
-        timestamp: new Date().toISOString()
-      }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
     
-    // Test audio processing directly
+    // DEPRECATED: Test endpoints - these will be removed in the next version
+    // TODO: Remove test endpoints after confirming new router works
     if (url.pathname === '/test-audio' && request.method === 'POST') {
       try {
         const payload = await request.json() as any;
@@ -247,7 +239,7 @@ export default {
         }
         
         // Fetch current prices from Brapi using list endpoint
-        const tickerSet = new Set(portfolio.map(p => p.ticker));
+        const tickerSet = new Set(portfolio.map((p: any) => p.ticker));
         const brapiUrl = `https://brapi.dev/api/quote/list?token=${env.BRAPI_TOKEN}`;
         
         console.log('Fetching prices from Brapi for tickers:', Array.from(tickerSet));
@@ -347,7 +339,7 @@ export default {
           })
         });
         
-        const result = await zApiResponse.json();
+        const result: any = await zApiResponse.json();
         
         return createCorsResponse(JSON.stringify({
           success: zApiResponse.ok,
@@ -688,8 +680,8 @@ export default {
       const eventBus = container.resolve<any>('IEventBus');
       const logger = container.resolve<ILogger>('ILogger');
       
-      // Create API router with module manager and container
-      const apiRouter = new ApiRouter(eventBus, logger, container, moduleManager);
+      // Create Composite API router with module manager and container
+      const apiRouter = new CompositeApiRouter(eventBus, logger, container, moduleManager);
       
       // Handle the request
       const response = await apiRouter.handle(request);
@@ -741,9 +733,9 @@ export default {
   },
 
   async scheduled(
-    event: ScheduledEvent,
+    event: any,
     env: Env,
-    _ctx: ExecutionContext
+    _ctx: any
   ): Promise<void> {
     // Validate environment (lenient mode for Cloudflare Workers)
     let validatedEnv: ValidatedEnv;

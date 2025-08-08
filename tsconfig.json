@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "lib": ["esnext"],
-    "types": ["@cloudflare/workers-types", "@types/node"],
+    "lib": ["esnext", "dom"],
+    "types": ["@types/node"],
     "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
@@ -14,16 +14,25 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"],
-      "@router/*": ["router/*"],
+      "@core/*": ["core/*"],
+      "@domains/*": ["domains/*"],
       "@modules/*": ["modules/*"],
       "@services/*": ["services/*"],
+      "@router/*": ["router/*"],
       "@utils/*": ["utils/*"],
       "@types/*": ["types/*"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*", "worker-configuration.d.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/legacy/index-*.ts",
+    "src/legacy/modules/**"
+  ]
 }

@@ -1,4 +1,4 @@
-import { PortfolioItem, PortfolioCalculation, StockData } from '../types';
+import { PortfolioItem, PortfolioCalculation } from '../types';
 import { IStockApiService } from './StockApiService';
 import { ILogger } from '../../../core/logging/Logger';
 

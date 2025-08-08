@@ -118,7 +118,7 @@ export class AudioHandler {
       );
       
     } catch (error) {
-      this.logger.warn('Failed to store transcription', error);
+      this.logger.warn('Failed to store transcription', { error: error instanceof Error ? error.message : String(error) });
       // Don't throw - this is not critical
     }
   }

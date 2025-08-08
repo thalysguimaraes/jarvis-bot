@@ -212,22 +212,19 @@ export type ServiceToken = typeof ServiceTokens[keyof typeof ServiceTokens];
 /**
  * Decorator for dependency injection (future enhancement)
  */
-export function Injectable(token?: string) {
-  return function (target: any) {
-    // Store metadata for automatic registration
-    Reflect.defineMetadata('service:token', token || target.name, target);
-    return target;
+export function Injectable(_token?: string) {
+  return function (_target: any) {
+    // No-op for now (metadata system not enabled)
+    return;
   };
 }
 
 /**
  * Decorator for injecting dependencies (future enhancement)
  */
-export function Inject(token: string) {
-  return function (target: any, propertyKey: string | symbol, parameterIndex: number) {
-    // Store metadata for automatic injection
-    const existingTokens = Reflect.getMetadata('service:inject', target) || [];
-    existingTokens[parameterIndex] = token;
-    Reflect.defineMetadata('service:inject', existingTokens, target);
+export function Inject(_token: string) {
+  return function (_target: any, _propertyKey: string | symbol, _parameterIndex: number) {
+    // No-op for now (metadata system not enabled)
+    return;
   };
 }

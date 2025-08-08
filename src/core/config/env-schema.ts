@@ -10,7 +10,6 @@ const CoreEnvSchema = z.object({
   // WhatsApp Integration (Z-API)
   Z_API_INSTANCE_ID: z.string().min(1, 'Z-API Instance ID is required'),
   Z_API_INSTANCE_TOKEN: z.string().min(1, 'Z-API Instance Token is required'),
-  Z_API_CLIENT_TOKEN: z.string().min(1, 'Z-API Client Token is required'),  // Used for webhook authentication
   
   // OpenAI Integration
   OPENAI_API_KEY: z.string().min(1, 'OpenAI API Key is required'),
@@ -24,6 +23,9 @@ const CoreEnvSchema = z.object({
 
 // Optional feature-specific variables
 const OptionalEnvSchema = z.object({
+  // Z-API Webhook Authentication
+  Z_API_CLIENT_TOKEN: z.string().optional(),  // Used for webhook authentication
+  
   // Todoist Integration
   TODOIST_API_TOKEN: z.string().optional(),
   
@@ -102,7 +104,7 @@ export const FeatureChecks = {
  * Throws detailed error if validation fails
  * @param strict - If false, validation is more lenient for Cloudflare Workers runtime
  */
-export function validateEnvironment(env: unknown, strict = false): ValidatedEnv {
+export function validateEnvironment(env: unknown, strict = true): ValidatedEnv {
   try {
     if (!strict) {
       // In non-strict mode (production Cloudflare Workers), 
@@ -167,6 +169,7 @@ export function createTestEnvironment(overrides?: Partial<ValidatedEnv>): Valida
     // Required
     Z_API_INSTANCE_ID: 'test-instance-id',
     Z_API_INSTANCE_TOKEN: 'test-instance-token',
+    Z_API_CLIENT_TOKEN: 'test-client-token',
     Z_API_SECURITY_TOKEN: 'test-security-token',
     OPENAI_API_KEY: 'test-openai-key',
     USER_CONFIGS: {} as any, // Mock KV namespace

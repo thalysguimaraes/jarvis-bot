@@ -21,8 +21,7 @@ export class FundPortfolioManager implements IFundPortfolioManager {
 
   async getUserPortfolio(userId: string): Promise<UserFundPortfolio> {
     try {
-      const key = this.getStorageKey(userId);
-      const stored = await this.storage.get(key);
+      const stored = await this.storage.get<string>(this.STORAGE_PREFIX, userId);
       
       if (stored) {
         const portfolio = JSON.parse(stored) as UserFundPortfolio;
@@ -132,11 +131,11 @@ export class FundPortfolioManager implements IFundPortfolioManager {
 
   async savePortfolio(portfolio: UserFundPortfolio): Promise<void> {
     try {
-      const key = this.getStorageKey(portfolio.userId);
-      await this.storage.set(
-        key,
+      await this.storage.put(
+        this.STORAGE_PREFIX,
+        portfolio.userId,
         JSON.stringify(portfolio),
-        { expirationTtl: this.STORAGE_TTL }
+        { ttl: this.STORAGE_TTL }
       );
       
       this.logger.debug('Portfolio saved to storage', { 
@@ -183,9 +182,9 @@ export class FundPortfolioManager implements IFundPortfolioManager {
     portfolio.lastUpdated = new Date().toISOString();
   }
 
-  private getStorageKey(userId: string): string {
-    return `${this.STORAGE_PREFIX}:${userId}`;
-  }
+  // private getStorageKey(userId: string): string {
+  //   return `${this.STORAGE_PREFIX}:${userId}`;
+  // }
 
   private generateId(): string {
     return `fund_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

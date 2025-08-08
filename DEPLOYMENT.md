@@ -1,16 +1,18 @@
 # JarvisBot Deployment Guide
 
-This guide walks you through deploying JarvisBot with Z-API for WhatsApp integration.
+Complete guide for deploying JarvisBot v2 with modular architecture.
 
 ## Prerequisites
 
 - Node.js 18+
-- Git
-- Cloudflare account (free)
+- Cloudflare account (free tier works)
 - Z-API account with WhatsApp Business number
 - OpenAI API account
+- Wrangler CLI: `npm install -g wrangler`
 
-## Step 1: Clone and Setup
+## Quick Start
+
+### 1. Clone and Install
 
 ```bash
 git clone https://github.com/yourusername/jarvis-bot.git
@@ -18,35 +20,26 @@ cd jarvis-bot
 npm install
 ```
 
-## Step 2: Setup Z-API
+### 2. Setup Credentials
 
-1. Go to [Z-API](https://z-api.io/) and create an account
-2. Create a WhatsApp Business instance
-3. Connect your WhatsApp Business number
-4. Note down your credentials:
-   - Instance ID (e.g., `3A4B5C6D7E8F9G0H`)
-   - Instance Token (long token string)
-   - Security Token (webhook authentication)
-
-## Step 3: Configure Environment
-
-1. Copy the example configuration:
+Copy and configure environment:
 ```bash
 cp .dev.vars.example .dev.vars
+nano .dev.vars  # Edit with your credentials
 ```
 
-2. Edit `.dev.vars` with your actual values:
-
-### Required Configuration
+Required credentials:
 ```env
-# Core
-WEBHOOK_SECRET=choose-a-random-secret-key
-OPENAI_API_KEY=sk-your-openai-api-key
+# Z-API WhatsApp
+Z_API_INSTANCE_ID=your-instance-id
+Z_API_INSTANCE_TOKEN=your-instance-token
+Z_API_CLIENT_TOKEN=your-client-token
 
-# Z-API (Required for WhatsApp)
-Z_API_INSTANCE_ID=your-z-api-instance-id
-Z_API_INSTANCE_TOKEN=your-z-api-instance-token
-Z_API_SECURITY_TOKEN=your-z-api-security-token
+# OpenAI
+OPENAI_API_KEY=sk-your-api-key
+
+# Security
+WEBHOOK_SECRET=your-random-secret
 ```
 
 ### Optional Features

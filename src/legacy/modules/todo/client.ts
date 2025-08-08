@@ -21,7 +21,7 @@ export class TodoistClient {
   ): Promise<T> {
     const url = `${this.baseUrl}/${endpoint}`;
     
-    const headers: HeadersInit = {
+    const headers: any = {
       'Authorization': `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json'
     };
@@ -35,7 +35,7 @@ export class TodoistClient {
     if (!response.ok) {
       let error: TodoistError;
       try {
-        error = await response.json();
+        error = (await response.json()) as any;
       } catch (e) {
         throw new Error(`Todoist API error: ${response.status} ${response.statusText}`);
       }

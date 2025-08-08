@@ -1,3 +1,4 @@
+import { Injectable } from '../../decorators/Injectable';
 import {
   IMessagingService,
   Message,
@@ -20,12 +21,13 @@ export interface ZApiConfig {
   retryConfig?: Partial<RetryConfig>;
 }
 
+@Injectable({ singleton: true })
 export class ZApiMessagingService implements IMessagingService {
   private config: Required<ZApiConfig>;
   private messageQueue: MessageQueue;
   private rateLimitTokens: number;
   private rateLimitResetAt: Date;
-  private lastRequestTime: Date = new Date();
+  // private lastRequestTime: Date = new Date();
   private retryConfig: RetryConfig;
   private healthStatus = {
     healthy: true,
@@ -94,7 +96,7 @@ export class ZApiMessagingService implements IMessagingService {
         });
         
         if (response.ok) {
-          const data = await response.json();
+          const data: any = await response.json();
           this.healthStatus.healthy = true;
           return {
             success: true,
@@ -361,7 +363,7 @@ export class ZApiMessagingService implements IMessagingService {
       this.rateLimitTokens--;
     }
     
-    this.lastRequestTime = new Date();
+    // this.lastRequestTime = new Date();
   }
   
   private isRateLimited(): boolean {

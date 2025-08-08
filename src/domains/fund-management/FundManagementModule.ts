@@ -1,16 +1,17 @@
 import { BaseDomainModule, ModuleHealth } from '../../core/modules/IDomainModule';
-import { DependencyContainer } from '../../core/services/ServiceRegistry';
+// import { DependencyContainer } from '../../core/services/ServiceRegistry';
 import { ILogger } from '../../core/logging/Logger';
-import { IMessagingService } from '../../core/services/interfaces/IMessagingService';
+import { IMessagingService, MessageType } from '../../core/services/interfaces/IMessagingService';
 import { IStorageService } from '../../core/services/interfaces/IStorageService';
 import { 
   EventTypes,
   FundPositionAddedEvent,
-  FundPositionUpdatedEvent,
+  // FundPositionUpdatedEvent,
   SystemErrorEvent,
   AudioClassifiedEvent
 } from '../../core/event-bus/EventTypes';
 import { DomainEvent } from '../../core/event-bus/DomainEvent';
+import { GenericEvent } from '../../core/event-bus/EventTypes';
 import { 
   FundConfig,
   FundPosition,
@@ -192,7 +193,7 @@ export class FundManagementModule extends BaseDomainModule {
       avgPrice: command.avgPrice
     };
 
-    const portfolio = await this.portfolioManager.addPosition(userId, position);
+    await this.portfolioManager.addPosition(userId, position);
     
     // Send confirmation
     await this.sendSuccessMessage(
@@ -217,7 +218,7 @@ export class FundManagementModule extends BaseDomainModule {
       return;
     }
 
-    const portfolio = await this.portfolioManager.removePosition(userId, command.cnpj);
+    await this.portfolioManager.removePosition(userId, command.cnpj);
     
     await this.sendSuccessMessage(userId, `✅ Posição removida: ${command.cnpj}`);
   }
@@ -242,7 +243,7 @@ export class FundManagementModule extends BaseDomainModule {
     const { userId, position } = event.payload as { userId: string; position: FundPosition };
     
     try {
-      const portfolio = await this.portfolioManager.addPosition(userId, position);
+      await this.portfolioManager.addPosition(userId, position);
       
       await this.publish(new FundPositionAddedEvent({
         userId,
@@ -278,7 +279,7 @@ export class FundManagementModule extends BaseDomainModule {
       const portfolio = await this.portfolioManager.getUserPortfolio(userId);
       
       // Return portfolio data via event
-      await this.publish(new DomainEvent('fund.positions_listed', {
+      await this.publish(new GenericEvent('fund.positions_listed', {
         userId,
         portfolio
       }));
@@ -297,7 +298,7 @@ export class FundManagementModule extends BaseDomainModule {
       const calculation = await this.calculator.calculatePortfolioValue(portfolio.positions);
       
       // Return calculation via event
-      await this.publish(new DomainEvent('fund.portfolio_calculated', {
+      await this.publish(new GenericEvent('fund.portfolio_calculated', {
         userId,
         calculation
       }));
@@ -339,9 +340,9 @@ export class FundManagementModule extends BaseDomainModule {
     const phoneNumber = userId; // Simplified for now
     
     await this.messagingService.sendMessage({
-      to: phoneNumber,
+      recipient: phoneNumber,
       content,
-      type: 'text'
+      type: MessageType.TEXT
     });
   }
 
@@ -390,7 +391,7 @@ export class FundManagementModule extends BaseDomainModule {
   protected async onHealthCheck(): Promise<Partial<ModuleHealth>> {
     try {
       // Check if we can reach the Zaisen API
-      const funds = await this.fundApiService.searchFunds('test', 1);
+      await this.fundApiService.searchFunds('test', 1);
       
       return {
         healthy: true,

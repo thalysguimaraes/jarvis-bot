@@ -205,7 +205,7 @@ export class AudioProcessor {
       throw new Error(`OpenAI classification error: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result: any = await response.json();
     const parsed = JSON.parse(result.choices[0].message.content);
     
     return {
@@ -400,7 +400,7 @@ export class AudioProcessor {
 
   public async processFundCommand(
     transcription: string, 
-    classification: string, 
+    _classification: string,
     payload: ZApiWebhookPayload
   ): Promise<void> {
     try {

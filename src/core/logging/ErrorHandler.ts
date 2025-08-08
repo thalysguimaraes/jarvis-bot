@@ -10,6 +10,8 @@ export interface ErrorContext {
   userId?: string;
   correlationId?: string;
   metadata?: Record<string, any>;
+  timestamp?: string;
+  stackSummary?: string;
 }
 
 export interface IErrorHandler {

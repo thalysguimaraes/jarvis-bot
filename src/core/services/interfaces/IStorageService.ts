@@ -15,7 +15,7 @@ export interface StorageItem<T = any> {
   expiresAt?: Date;
 }
 
-export interface ListResult<T = any> {
+export interface ListResult {
   keys: Array<{
     name: string;
     metadata?: Record<string, any>;
