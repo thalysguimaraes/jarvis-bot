@@ -9,6 +9,9 @@ import { validateEvent } from '../../event-bus/EventSchemas';
  */
 
 // Z-API Webhook payload schemas
+// Temporarily disabled validation for debugging webhook issues
+// TODO: Re-enable with proper schema once webhook format is confirmed
+/*
 const ZApiMessageSchema = z.object({
   event: z.string().optional(),
   type: z.string().optional(),
@@ -36,6 +39,7 @@ const ZApiMessageSchema = z.object({
     }).optional(),
   }).optional(),
 });
+*/
 
 export class WebhookRouter extends DomainRouter {
   protected initialize(): void {

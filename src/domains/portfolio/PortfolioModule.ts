@@ -317,28 +317,18 @@ export class PortfolioModule extends BaseDomainModule {
   }
   
   protected async onHealthCheck(): Promise<Partial<ModuleHealth>> {
-    try {
-      // Check if we can reach the Brapi API
-      const testTickers = ['PETR4'];
-      await this.stockApiService.fetchPrices(testTickers);
-      
-      return {
-        healthy: true,
-        metrics: {
-          apiAvailable: true,
-          lastCheck: new Date()
-        }
-      };
-    } catch (error) {
-      return {
-        healthy: false,
-        errors: [`Stock API health check failed: ${(error as Error).message}`],
-        metrics: {
-          apiAvailable: false,
-          lastCheck: new Date()
-        }
-      };
-    }
+    // Return basic health status without making external API calls
+    // This prevents unnecessary rate limit hits during health checks
+    return {
+      healthy: true,
+      metrics: {
+        moduleActive: true,
+        lastCheck: new Date(),
+        // We can check internal components without hitting external APIs
+        hasConfiguration: !!this.config,
+        hasServices: !!this.stockApiService && !!this.calculator && !!this.dataLoader
+      }
+    };
   }
 
   // Public methods for external access

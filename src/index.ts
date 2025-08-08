@@ -238,9 +238,11 @@ export default {
           ];
         }
         
-        // Fetch current prices from Brapi using list endpoint
-        const tickerSet = new Set(portfolio.map((p: any) => p.ticker));
-        const brapiUrl = `https://brapi.dev/api/quote/list?token=${env.BRAPI_TOKEN}`;
+        // Fetch current prices from Brapi for specific tickers
+        const tickers = portfolio.map((p: any) => p.ticker);
+        const tickerSet = new Set(tickers);
+        const tickerString = tickers.join(',');
+        const brapiUrl = `https://brapi.dev/api/quote/${tickerString}?token=${env.BRAPI_TOKEN}`;
         
         console.log('Fetching prices from Brapi for tickers:', Array.from(tickerSet));
         const brapiResponse = await fetch(brapiUrl);
@@ -252,14 +254,14 @@ export default {
         
         const brapiData = await brapiResponse.json() as any;
         
-        // Build price map from list endpoint
+        // Build price map from quote endpoint
         const priceMap: Record<string, number> = {};
-        if (brapiData.stocks && Array.isArray(brapiData.stocks)) {
-          for (const stock of brapiData.stocks) {
-            if (tickerSet.has(stock.stock)) {
-              // Use 'close' field from list endpoint
-              priceMap[stock.stock] = stock.close || 0;
-              console.log(`Price for ${stock.stock}: ${stock.close}`);
+        if (brapiData.results && Array.isArray(brapiData.results)) {
+          for (const stock of brapiData.results) {
+            if (tickerSet.has(stock.symbol)) {
+              // Use 'regularMarketPrice' field from quote endpoint
+              priceMap[stock.symbol] = stock.regularMarketPrice || 0;
+              console.log(`Price for ${stock.symbol}: ${stock.regularMarketPrice}`);
             }
           }
         } else {
@@ -402,14 +404,14 @@ export default {
         if (env.BRAPI_TOKEN) {
           try {
             const testTicker = 'PETR4';
-            const brapiUrl = `https://brapi.dev/api/quote/list?token=${env.BRAPI_TOKEN}`;
+            const brapiUrl = `https://brapi.dev/api/quote/${testTicker}?token=${env.BRAPI_TOKEN}`;
             const brapiResponse = await fetch(brapiUrl);
             const brapiData = await brapiResponse.json() as any;
             
             let price = 'N/A';
-            if (brapiData.stocks && Array.isArray(brapiData.stocks)) {
-              const petr4 = brapiData.stocks.find((s: any) => s.stock === testTicker);
-              price = petr4?.close || 'N/A';
+            if (brapiData.results && Array.isArray(brapiData.results)) {
+              const petr4 = brapiData.results.find((s: any) => s.symbol === testTicker);
+              price = petr4?.regularMarketPrice || 'N/A';
             }
             
             diagnostics.steps.brapiApi = {
