@@ -550,7 +550,7 @@ export default {
       });
     }
     
-    // Handle webhook - Use legacy processor for stability
+    // Handle webhook - Check for audio messages that need legacy processor
     if (url.pathname === '/webhook' && request.method === 'POST') {
       // No authentication needed - Z-API webhooks rely on URL privacy
       
@@ -559,15 +559,17 @@ export default {
         console.log('Webhook received from Z-API', { 
           event: payload.event, 
           messageType: payload.data?.message?.type,
-          hasAudio: !!payload.audio?.data || !!payload.data?.message?.body?.data
+          hasAudio: !!payload.audio?.data || !!payload.data?.message?.body?.data,
+          hasText: !!(payload.data?.message?.text?.body || payload.text)
         });
         
-        // Handle audio messages using LEGACY WORKING IMPLEMENTATION
-        if ((payload.event === 'message.received' && 
-             payload.data?.message?.type === 'audio' &&
-             !payload.data?.message?.fromMe) ||
-            payload.audio?.data) {
-          
+        // Check if it's an audio message that needs legacy processing
+        const isAudioMessage = (payload.event === 'message.received' && 
+                               payload.data?.message?.type === 'audio' &&
+                               !payload.data?.message?.fromMe) ||
+                              payload.audio?.data;
+        
+        if (isAudioMessage) {
           console.log('Processing audio with legacy processor');
           
           // Import legacy processor
@@ -594,24 +596,13 @@ export default {
           });
         }
         
-        // Acknowledge other messages
-        return createCorsResponse(JSON.stringify({ 
-          success: true,
-          message: 'Webhook received'
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        // For text messages and other webhook types, pass through to modular system
+        // The request will be handled by the WebhookRouter in the modular system
+        console.log('Passing webhook to modular system for processing');
         
       } catch (error) {
-        console.error('Webhook processing error:', error);
-        return createCorsResponse(JSON.stringify({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }), { 
-          status: 200, // Still return 200 to acknowledge webhook
-          headers: { 'Content-Type': 'application/json' }
-        });
+        console.error('Webhook preprocessing error:', error);
+        // Don't return error here, let it pass through to modular system
       }
     }
     
