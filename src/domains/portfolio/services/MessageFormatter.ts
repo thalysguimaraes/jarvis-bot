@@ -14,40 +14,35 @@ export class PortfolioMessageFormatter implements IMessageFormatter {
       return this.formatInstantReport(calculation, now, timeStr);
     }
     
-    // Regular scheduled report format
+    // Regular scheduled report format - also focus on daily performance
     const lines: string[] = [
       '📊 *RELATÓRIO DIÁRIO DO PORTFÓLIO*',
       `📅 ${now.toLocaleDateString('pt-BR')}`,
       '',
     ];
 
+    // Current value and daily performance first
+    lines.push(`💼 *VALOR DO PORTFÓLIO: R$ ${this.formatNumber(calculation.currentValue)}*`);
+    lines.push('');
+    
+    // Daily performance prominently displayed
+    const dailyEmoji = this.getEmoji(calculation.dailyPnL);
+    lines.push('📈 *DESEMPENHO HOJE*');
+    lines.push(`${dailyEmoji} Variação do Dia: R$ ${this.formatNumber(Math.abs(calculation.dailyPnL))} (${calculation.dailyPercentageChange >= 0 ? '+' : ''}${calculation.dailyPercentageChange.toFixed(2)}%)`);
+    
+    // Count ups and downs
+    const upsAndDowns = this.countUpsAndDowns(calculation.details);
+    if (upsAndDowns.total > 0) {
+      lines.push(`📊 Movimento: ${upsAndDowns.up}↑ ${upsAndDowns.down}↓ ${upsAndDowns.unchanged}→`);
+    }
+    lines.push('');
+
     // Check if we have funds data
     const hasFunds = !!(calculation.funds && calculation.funds.length > 0);
     
     // Stock section - only show if we have stock positions
     if (calculation.details && calculation.details.length > 0) {
-      const stockValue = hasFunds 
-        ? calculation.currentValue - (calculation.fundsValue || 0)
-        : calculation.currentValue;
-      const stockCost = hasFunds
-        ? calculation.totalCost - (calculation.fundsTotalCost || 0)
-        : calculation.totalCost;
-      const stockPnL = stockValue - stockCost;
-      const stockPnLPercent = stockCost > 0 ? (stockPnL / stockCost) * 100 : 0;
-        
-      lines.push('📈 *AÇÕES*');
-      lines.push(`💰 Valor Total: R$ ${this.formatNumber(stockValue)}`);
-      lines.push(`📊 Custo Total: R$ ${this.formatNumber(stockCost)}`);
-      lines.push(`${this.getEmoji(stockPnL)} Lucro/Prejuízo: R$ ${this.formatNumber(Math.abs(stockPnL))} (${stockPnLPercent >= 0 ? '+' : ''}${stockPnLPercent.toFixed(2)}%)`);
-      lines.push('');
-      
-      if (!isInstant) {
-        lines.push('*Desempenho Diário:*');
-        lines.push(`${this.getEmoji(calculation.dailyPnL)} R$ ${this.formatNumber(Math.abs(calculation.dailyPnL))} (${calculation.dailyPercentageChange >= 0 ? '+' : ''}${calculation.dailyPercentageChange.toFixed(2)}%)`);
-        lines.push('');
-      }
-      
-      lines.push('*Posições:*');
+      lines.push('📈 *AÇÕES - Variação do Dia*');
       
       // Sort by position value (descending)
       const sortedDetails = [...calculation.details].sort((a, b) => b.position - a.position);
