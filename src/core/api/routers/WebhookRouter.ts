@@ -30,6 +30,9 @@ const ZApiMessageSchema = z.object({
         data: z.string().optional(),
         mimeType: z.string().optional(),
       }).optional(),
+      text: z.object({
+        body: z.string().optional(),
+      }).optional(),
     }).optional(),
   }).optional(),
 });
@@ -41,17 +44,19 @@ export class WebhookRouter extends DomainRouter {
     // Main webhook endpoint
     this.post('', this.handleWebhook.bind(this), {
       description: 'Main webhook endpoint for Z-API messages',
-      validation: {
-        body: ZApiMessageSchema,
-      },
+      // Temporarily disabled validation to debug webhook issues
+      // validation: {
+      //   body: ZApiMessageSchema,
+      // },
     });
     
     // Z-API specific webhook (for compatibility)
     this.post('/zapi', this.handleWebhook.bind(this), {
       description: 'Z-API specific webhook endpoint',
-      validation: {
-        body: ZApiMessageSchema,
-      },
+      // Temporarily disabled validation to debug webhook issues
+      // validation: {
+      //   body: ZApiMessageSchema,
+      // },
     });
     
     // Webhook status endpoint

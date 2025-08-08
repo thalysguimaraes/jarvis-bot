@@ -554,8 +554,11 @@ export default {
     if (url.pathname === '/webhook' && request.method === 'POST') {
       // No authentication needed - Z-API webhooks rely on URL privacy
       
+      // Clone the request so we can read the body twice if needed
+      const clonedRequest = request.clone();
+      
       try {
-        const payload = await request.json() as any;
+        const payload = await clonedRequest.json() as any;
         console.log('Webhook received from Z-API', { 
           event: payload.event, 
           messageType: payload.data?.message?.type,
@@ -606,8 +609,7 @@ export default {
       }
     }
     
-    // For other requests, use new modular architecture (but only if not webhook)
-    // Webhook requests are handled above with legacy processor
+    // For all other requests (including non-audio webhooks), use new modular architecture
     
     // Validate environment (lenient mode for Cloudflare Workers)
     let validatedEnv: ValidatedEnv;
