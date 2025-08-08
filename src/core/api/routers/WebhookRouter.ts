@@ -153,6 +153,7 @@ export class WebhookRouter extends DomainRouter {
   private isTextMessage(payload: any): boolean {
     return (
       payload.type === 'text' ||
+      (payload.type === 'ReceivedCallback' && payload.text?.message) || // Z-API format
       (payload.event === 'message.received' && payload.data?.message?.type === 'text') ||
       (payload.data?.message?.text?.body)
     );
@@ -166,15 +167,16 @@ export class WebhookRouter extends DomainRouter {
     context: RouteContext
   ): Promise<Response> {
     try {
-      // Extract text content
-      const text = payload.text || 
+      // Extract text content - support multiple Z-API formats
+      const text = payload.text?.message || // Z-API ReceivedCallback format
+                   payload.text || 
                    payload.data?.message?.text?.body || 
                    payload.data?.message?.body ||
                    '';
       
-      // Extract user identifier
-      const userId = payload.from || 
-                    payload.phone || 
+      // Extract user identifier - Z-API uses 'phone' field
+      const userId = payload.phone || // Z-API format
+                    payload.from || 
                     payload.senderNumber ||
                     payload.data?.message?.from ||
                     'unknown';
