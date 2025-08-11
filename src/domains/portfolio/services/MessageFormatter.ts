@@ -104,7 +104,7 @@ export class PortfolioMessageFormatter implements IMessageFormatter {
     }
     
     lines.push('');
-    lines.push('_Atualizado via Jarvis Bot_ 🤖');
+    lines.push('_Jarvis Bot v2.1 | Portfolio Module_ 🤖');
     
     return lines.join('\n');
   }
@@ -201,7 +201,7 @@ export class PortfolioMessageFormatter implements IMessageFormatter {
     
     lines.push('');
     lines.push('💬 _Digite "portfolio completo" para relatório detalhado_');
-    lines.push('_Atualizado via Jarvis Bot_ 🤖');
+    lines.push('_Jarvis Bot v2.1 | Portfolio Module_ 🤖');
     
     return lines.join('\n');
   }

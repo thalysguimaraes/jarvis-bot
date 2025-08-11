@@ -5,10 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
 # Scheduled tasks:
-# Daily portfolio report - 9 AM BRT (12:00 UTC)
-# Fund portfolio check - 6 PM BRT (21:00 UTC)
+# Daily portfolio report - 9 AM BRT (12:00 UTC) - Monday to Friday only
+# Fund portfolio check - 6 PM BRT (21:00 UTC) - Monday to Friday only
 [triggers]
-crons = ["0 12 * * *", "0 21 * * *"]
+crons = ["0 12 * * 1-5", "0 21 * * 1-5"]
 
 # KV Namespace for user configurations and voice notes
 [[kv_namespaces]]

@@ -139,7 +139,20 @@ export class PortfolioModule extends BaseDomainModule {
 
   private async handleDailyReport(_event: DomainEvent): Promise<void> {
     try {
-      this.logger.info('Processing daily portfolio report');
+      // Check if today is a weekday (Monday = 1, Friday = 5 in São Paulo timezone)
+      const now = new Date();
+      const saoPauloDay = now.toLocaleDateString('pt-BR', { 
+        timeZone: 'America/Sao_Paulo',
+        weekday: 'long'
+      }).toLowerCase();
+      
+      // Skip weekends
+      if (saoPauloDay === 'sábado' || saoPauloDay === 'domingo') {
+        this.logger.info('Skipping portfolio report on weekend', { day: saoPauloDay });
+        return;
+      }
+      
+      this.logger.info('Processing daily portfolio report', { day: saoPauloDay });
       
       // For scheduled reports, we use the default user
       await this.sendPortfolioReport('default', 'daily');
