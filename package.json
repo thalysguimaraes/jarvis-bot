@@ -4,10 +4,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "wrangler dev",
-    "dev:old": "wrangler dev --config wrangler-old.toml",
     "build": "wrangler types && tsc --noEmit",
     "deploy": "wrangler deploy",
-    "deploy:old": "wrangler deploy --config wrangler-old.toml",
     "setup:secrets": "bash scripts/setup-secrets-from-devvars.sh",
     "typecheck": "wrangler types && tsc --noEmit",
     "lint": "tsc --noEmit",
