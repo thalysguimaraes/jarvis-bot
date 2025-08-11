@@ -56,6 +56,7 @@ OBSIDIAN-PLUGIN-API.md
 
 # Development scripts with personal data
 test-*.js
+test-*.sh
 update-*.js
 real-*.js
 *-real-*.js
