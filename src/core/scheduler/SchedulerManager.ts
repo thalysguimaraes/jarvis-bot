@@ -136,9 +136,17 @@ export interface ScheduledEvent {
 export function getDefaultScheduledTasks(): ScheduledTask[] {
   return [
     {
-      id: 'daily-portfolio-report',
-      name: 'Daily Portfolio Report',
-      cronExpression: '0 9 * * *', // 9 AM daily
+      id: 'morning-portfolio-report',
+      name: 'Morning Portfolio Report',
+      cronExpression: '0 12 * * 1-5', // 9 AM BRT (12:00 UTC) - Monday to Friday
+      eventType: 'scheduler.daily_portfolio_report',
+      payload: { reportType: 'daily' },
+      enabled: true
+    },
+    {
+      id: 'evening-portfolio-report',
+      name: 'Evening Portfolio Report',
+      cronExpression: '0 21 * * 1-5', // 6 PM BRT (21:00 UTC) - Monday to Friday
       eventType: 'scheduler.daily_portfolio_report',
       payload: { reportType: 'daily' },
       enabled: true

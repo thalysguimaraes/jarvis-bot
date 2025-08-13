@@ -6,6 +6,7 @@ import { DomainRouter, Route, RouteContext } from './routers/DomainRouter';
 import { WebhookRouter } from './routers/WebhookRouter';
 import { PortfolioRouter } from './routers/PortfolioRouter';
 import { NotesRouter } from './routers/NotesRouter';
+import { VoiceNotesRouter } from './routers/VoiceNotesRouter';
 import { handleCorsPreflight } from '../utils/cors';
 import { ErrorResponseBuilder, ErrorCode } from '../errors/ErrorResponse';
 
@@ -45,6 +46,7 @@ export class CompositeApiRouter implements ICompositeApiRouter {
       new WebhookRouter(this.container, this.eventBus, this.logger),
       new PortfolioRouter(this.container, this.eventBus, this.logger),
       new NotesRouter(this.container, this.eventBus, this.logger),
+      new VoiceNotesRouter(this.container, this.eventBus, this.logger),
     ];
     
     // Register each router
