@@ -38,6 +38,7 @@ export class FeatureFlagService {
   private storagePrefix: string;
   private defaultFlags: Map<string, boolean>;
   private namespace = 'feature-flags';
+  private readonly INDEX_KEY = 'feature_flag_index';
   private evaluationCache = new Map<string, boolean>();
 
   constructor(
@@ -60,6 +61,17 @@ export class FeatureFlagService {
     this.eventBus.subscribe('feature-flag:updated', async (event: any) => {
       await this.loadFlag(event.payload.key);
     });
+  }
+
+  private async updateIndex(key: string, add: boolean): Promise<void> {
+    const current = await this.storage.get<string[]>(this.namespace, this.INDEX_KEY) || [];
+    const set = new Set(current);
+    if (add) {
+      set.add(key);
+    } else {
+      set.delete(key);
+    }
+    await this.storage.put(this.namespace, this.INDEX_KEY, Array.from(set));
   }
 
   async isEnabled(key: string, context?: FeatureFlagContext): Promise<boolean> {
@@ -171,6 +183,7 @@ export class FeatureFlagService {
       `${this.storagePrefix}${flag.key}`,
       newFlag
     );
+    await this.updateIndex(flag.key, true);
     
     // Update cache
     this.flags.set(flag.key, newFlag);
@@ -243,6 +256,7 @@ export class FeatureFlagService {
   async deleteFlag(key: string): Promise<void> {
     // Delete from storage
     await this.storage.delete(this.namespace, `${this.storagePrefix}${key}`);
+    await this.updateIndex(key, false);
     
     // Remove from cache
     this.flags.delete(key);
@@ -294,13 +308,10 @@ export class FeatureFlagService {
   }
 
   private async loadFlags(): Promise<void> {
-    const result = await this.storage.list(this.namespace, { prefix: this.storagePrefix });
-    
-    for (const key of result.keys) {
-      const flagKey = key.name.replace(this.storagePrefix, '');
-      await this.loadFlag(flagKey);
+    const keys = await this.storage.get<string[]>(this.namespace, this.INDEX_KEY) || [];
+    for (const key of keys) {
+      await this.loadFlag(key);
     }
-    
     this.logger.info('Feature flags loaded', { count: this.flags.size });
   }
 
@@ -372,7 +383,7 @@ export class FeatureFlagService {
     for (const [key, flag] of Object.entries(flags)) {
       await this.createFlag({ ...flag, key });
     }
-    
+
     this.logger.info('Feature flags imported', { count: Object.keys(flags).length });
   }
 

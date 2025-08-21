@@ -15,6 +15,7 @@ export interface IVoiceNoteSyncService {
 export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   private readonly NAMESPACE = 'voice_notes';
   private readonly VOICE_NOTE_PREFIX = 'voice_note:';
+  private readonly UNPROCESSED_INDEX_KEY = 'voice_unprocessed_index';
   private readonly DEFAULT_TTL = 86400 * 90; // 90 days
 
   constructor(
@@ -62,10 +63,22 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
     return (result.keys || []) as Array<{ name: string }>;
   }
 
+  private async updateUnprocessedIndex(noteId: string, add: boolean): Promise<void> {
+    const data = await this.storageGet(this.UNPROCESSED_INDEX_KEY);
+    let ids: string[] = data ? JSON.parse(data) : [];
+    if (add) {
+      if (!ids.includes(noteId)) ids.push(noteId);
+    } else {
+      ids = ids.filter(id => id !== noteId);
+    }
+    await this.storagePut(this.UNPROCESSED_INDEX_KEY, JSON.stringify(ids), { ttl: this.DEFAULT_TTL });
+  }
+
   async storeVoiceNote(note: VoiceNote): Promise<void> {
     try {
       const key = `${this.VOICE_NOTE_PREFIX}${note.id}`;
       await this.storagePut(key, JSON.stringify(note), { ttl: this.DEFAULT_TTL });
+      await this.updateUnprocessedIndex(note.id, true);
       
       this.logger.info('Voice note stored', {
         noteId: note.id,
@@ -81,15 +94,20 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
   async getUnprocessedNotes(): Promise<VoiceNote[]> {
     try {
       const notes: VoiceNote[] = [];
-      const keys = await this.storageList(this.VOICE_NOTE_PREFIX);
-      
-      for (const keyInfo of keys) {
-        const noteData = await this.storageGet(keyInfo.name);
+      const indexData = await this.storageGet(this.UNPROCESSED_INDEX_KEY);
+      const ids: string[] = indexData ? JSON.parse(indexData) : [];
+
+      for (const id of ids) {
+        const noteData = await this.storageGet(`${this.VOICE_NOTE_PREFIX}${id}`);
         if (noteData) {
           const note = JSON.parse(noteData) as VoiceNote;
           if (!note.processed) {
             notes.push(note);
+          } else {
+            await this.updateUnprocessedIndex(id, false);
           }
+        } else {
+          await this.updateUnprocessedIndex(id, false);
         }
       }
       
@@ -192,8 +210,9 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
       
       const note = JSON.parse(noteData) as VoiceNote;
       note.processed = true;
-      
+
       await this.storagePut(key, JSON.stringify(note), { ttl: this.DEFAULT_TTL });
+      await this.updateUnprocessedIndex(noteId, false);
       
       this.logger.info('Note marked as processed', { noteId });
     } catch (error) {
@@ -214,8 +233,9 @@ export class VoiceNoteSyncService implements IVoiceNoteSyncService {
       const note = JSON.parse(noteData) as VoiceNote;
       note.syncedToObsidian = true;
       note.processed = true;
-      
+
       await this.storagePut(key, JSON.stringify(note), { ttl: this.DEFAULT_TTL });
+      await this.updateUnprocessedIndex(noteId, false);
       
       this.logger.info('Note marked as synced to Obsidian', { noteId });
     } catch (error) {
