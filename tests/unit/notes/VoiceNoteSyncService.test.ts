@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { VoiceNoteSyncService } from '../../../src/domains/notes/services/VoiceNoteSyncService';
 import { MockKVNamespace } from '../../mocks/kv-namespace';
 import { ILogger } from '../../../src/core/logging/Logger';
-import { IStorageService } from '../../../src/core/services/storage/IStorageService';
+import { IStorageService } from '../../../src/core/services/interfaces/IStorageService';
 import { VoiceNote, NoteFilter } from '../../../src/domains/notes/types';
 
 // Create mock logger
@@ -15,20 +15,21 @@ const createMockLogger = (): ILogger => ({
 
 // Create mock storage service that wraps KV
 const createMockStorageService = (kv: MockKVNamespace): IStorageService => ({
-  get: async (key: string) => {
+  get: async (_ns: string, key: string) => {
     return await kv.get(key);
   },
-  set: async (key: string, value: string, options?: any) => {
-    await kv.put(key, value, options);
+  put: async (_ns: string, key: string, value: any, options?: any) => {
+    const v = typeof value === 'string' ? value : JSON.stringify(value);
+    await kv.put(key, v, options);
   },
-  delete: async (key: string) => {
+  delete: async (_ns: string, key: string) => {
     await kv.delete(key);
   },
-  list: async (options?: { prefix?: string }) => {
+  list: async (_ns: string, options?: { prefix?: string }) => {
     const result = await kv.list(options);
-    return result.keys.map(k => k.name);
+    return { keys: result.keys, hasMore: !result.list_complete } as any;
   },
-});
+} as unknown as IStorageService);
 
 describe('VoiceNoteSyncService', () => {
   let service: VoiceNoteSyncService;
@@ -83,7 +84,7 @@ describe('VoiceNoteSyncService', () => {
 
     it('should handle save errors gracefully', async () => {
       const note = createTestNote('test-id-1');
-      vi.spyOn(mockStorageService, 'set').mockRejectedValueOnce(new Error('KV error'));
+      vi.spyOn(mockStorageService, 'put').mockRejectedValueOnce(new Error('KV error'));
       
       await expect(service.storeVoiceNote(note)).rejects.toThrow('KV error');
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -104,7 +105,7 @@ describe('VoiceNoteSyncService', () => {
       ];
       
       for (const note of notes) {
-        await mockKV.put(`voice_note:${note.id}`, JSON.stringify(note));
+        await service.storeVoiceNote(note);
       }
       
       const unprocessed = await service.getUnprocessedNotes();
@@ -120,16 +121,16 @@ describe('VoiceNoteSyncService', () => {
       ];
       
       for (const note of notes) {
-        await mockKV.put(`voice_note:${note.id}`, JSON.stringify(note));
+        await service.storeVoiceNote(note);
       }
       
       const unprocessed = await service.getUnprocessedNotes();
       expect(unprocessed).toHaveLength(0);
     });
 
-    it('should handle KV list errors', async () => {
-      vi.spyOn(mockKV, 'list').mockRejectedValueOnce(new Error('KV error'));
-      
+    it('should handle index retrieval errors', async () => {
+      vi.spyOn(mockStorageService, 'get').mockRejectedValueOnce(new Error('KV error'));
+
       await expect(service.getUnprocessedNotes()).rejects.toThrow('KV error');
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to get unprocessed notes',
@@ -145,9 +146,9 @@ describe('VoiceNoteSyncService', () => {
         createTestNote('note-2', true, false, new Date('2025-01-15T11:00:00Z')),
         createTestNote('note-3', true, true, new Date('2025-01-15T12:00:00Z')),
       ];
-      
+
       for (const note of notes) {
-        await mockKV.put(`voice_note:${note.id}`, JSON.stringify(note));
+        await service.storeVoiceNote(note);
       }
     });
 
@@ -222,7 +223,7 @@ describe('VoiceNoteSyncService', () => {
       ];
       
       for (const note of notes) {
-        await mockKV.put(`voice_note:${note.id}`, JSON.stringify(note));
+        await service.storeVoiceNote(note);
       }
       
       const recent = await service.getRecentNotes();
@@ -242,7 +243,7 @@ describe('VoiceNoteSyncService', () => {
       ];
       
       for (const note of notes) {
-        await mockKV.put(`voice_note:${note.id}`, JSON.stringify(note));
+        await service.storeVoiceNote(note);
       }
       
       const recent = await service.getRecentNotes(2); // Last 2 hours
@@ -257,7 +258,7 @@ describe('VoiceNoteSyncService', () => {
       ];
       
       for (const note of notes) {
-        await mockKV.put(`voice_note:${note.id}`, JSON.stringify(note));
+        await service.storeVoiceNote(note);
       }
       
       const recent = await service.getRecentNotes(1);
@@ -268,7 +269,7 @@ describe('VoiceNoteSyncService', () => {
   describe('markNoteAsProcessed', () => {
     it('should mark note as processed', async () => {
       const note = createTestNote('test-id', false, false);
-      await mockKV.put('voice_note:test-id', JSON.stringify(note));
+      await service.storeVoiceNote(note);
       
       await service.markNoteAsProcessed('test-id');
       
@@ -288,9 +289,9 @@ describe('VoiceNoteSyncService', () => {
 
     it('should handle update errors', async () => {
       const note = createTestNote('test-id', false, false);
-      await mockKV.put('voice_note:test-id', JSON.stringify(note));
-      
-      vi.spyOn(mockKV, 'put').mockRejectedValueOnce(new Error('KV error'));
+      await service.storeVoiceNote(note);
+
+      vi.spyOn(mockStorageService, 'put').mockRejectedValueOnce(new Error('KV error'));
       
       await expect(service.markNoteAsProcessed('test-id')).rejects.toThrow('KV error');
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -304,7 +305,7 @@ describe('VoiceNoteSyncService', () => {
   describe('markNoteAsSynced', () => {
     it('should mark note as synced and processed', async () => {
       const note = createTestNote('test-id', false, false);
-      await mockKV.put('voice_note:test-id', JSON.stringify(note));
+      await service.storeVoiceNote(note);
       
       await service.markNoteAsSynced('test-id');
       
@@ -318,7 +319,7 @@ describe('VoiceNoteSyncService', () => {
 
     it('should update already processed note', async () => {
       const note = createTestNote('test-id', true, false);
-      await mockKV.put('voice_note:test-id', JSON.stringify(note));
+      await service.storeVoiceNote(note);
       
       await service.markNoteAsSynced('test-id');
       
@@ -337,7 +338,7 @@ describe('VoiceNoteSyncService', () => {
   describe('getNoteById', () => {
     it('should get a note by ID', async () => {
       const note = createTestNote('test-id');
-      await mockKV.put('voice_note:test-id', JSON.stringify(note));
+      await service.storeVoiceNote(note);
       
       const retrieved = await service.getNoteById('test-id');
       

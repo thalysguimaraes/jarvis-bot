@@ -26,6 +26,8 @@ interface RateLimitStore {
 export class RateLimitMiddleware {
   private logger: ILogger;
   private stores: Map<string, RateLimitStore> = new Map();
+  private lastPersist = new Map<string, { time: number; count: number }>();
+  private persistenceInterval = 5000; // 5 seconds
   private cleanupInterval: number | null = null;
   
   constructor(
@@ -197,12 +199,20 @@ export class RateLimitMiddleware {
   private async setStore(key: string, store: RateLimitStore): Promise<void> {
     // Update in-memory store
     this.stores.set(key, store);
-    
+
     // Try to update distributed storage
     if (this.storage) {
       try {
-        const ttl = Math.ceil((store.resetTime - Date.now()) / 1000);
-        await this.storage.put('rate_limit', key, store, { ttl });
+        const now = Date.now();
+        const last = this.lastPersist.get(key) || { time: 0, count: 0 };
+        if (
+          now - last.time > this.persistenceInterval ||
+          store.count - last.count >= 10
+        ) {
+          const ttl = Math.ceil((store.resetTime - now) / 1000);
+          await this.storage.put('rate_limit', key, store, { ttl });
+          this.lastPersist.set(key, { time: now, count: store.count });
+        }
       } catch (error) {
         this.logger.error('Failed to set rate limit in storage', error, { key });
       }
